@@ -1,4 +1,5 @@
-export const CollisionSystem = (entities: any) => {
+export const CollisionSystem = (entities: any, { time }: any) => {
+  const dt = time?.delta || 16;
   const fishes = Object.values(entities).filter((e: any) => e.type === 'fish');
   const foods = Object.keys(entities).filter((k: any) => entities[k].type === 'food');
 
@@ -27,7 +28,7 @@ export const CollisionSystem = (entities: any) => {
   foods.forEach((foodKey: any) => {
     const food = entities[foodKey];
     if (food) {
-      food.position.y += 2; // slow fall
+      food.position.y += 2 * (dt / 16); // constant fall speed
       if (food.position.y > 800) {
         delete entities[foodKey]; // Cleanup missed food
       }

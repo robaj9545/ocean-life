@@ -1,11 +1,21 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { View, Text, StyleSheet } from 'react-native'
+import ClownfishSVG from './fishes/Clownfish'
+import BlueTangSVG from './fishes/BlueTang'
+
+// Memoize deeply to prevent expensive SVG re-renders 60x per second
+const MemoizedFishSVG = React.memo(({ species, size, isBaby }: any) => {
+  if (species === 'bluetang') {
+    return <BlueTangSVG size={size} isBaby={isBaby} />
+  }
+  return <ClownfishSVG size={size} isBaby={isBaby} />
+}, (prev, next) => prev.species === next.species && prev.size === next.size && prev.isBaby === next.isBaby)
 
 export default function Fish(props: any) {
-  const { position, size, color, direction, hunger } = props
+  const { position, size, direction, hunger, species, stage, health } = props
 
-  // Determine standard size scaling (min size 20)
   const renderSize = Math.max(20, size)
+  const isBaby = stage === 'baby' || stage === 'egg'
 
   return (
     <View style={[styles.fish, { left: position.x - renderSize/2, top: position.y - renderSize/2, width: renderSize, height: renderSize, borderRadius: renderSize / 2 }]}>
@@ -17,11 +27,16 @@ export default function Fish(props: any) {
          </View>
        )}
 
-       <View style={[styles.sprite, { transform: [{ scaleX: direction }] }]}>
-          <View style={[styles.body, { backgroundColor: color, width: renderSize, height: renderSize / 1.5, borderRadius: renderSize / 2 }]} />
-          <View style={[styles.tail, { borderRightColor: color, left: -renderSize/3, top: renderSize/6, borderTopWidth: renderSize/4, borderBottomWidth: renderSize/4, borderRightWidth: renderSize/3 }]} />
-          {/* Eye */}
-          <View style={[styles.eye, { right: renderSize/5, top: renderSize/5 }]} />
+       {/* Sick? Show icon */}
+       {health < 50 && (
+         <View style={[styles.hungerBubble, { top: -45, borderColor: 'green' }]}>
+           <Text style={styles.hungerIcon}>🤢</Text>
+         </View>
+       )}
+
+       {/* Fast native transform replacement, avoiding Animated collisions with 60FPS tick */}
+       <View style={[styles.sprite, { transform: [{ scaleX: direction }], opacity: health < 20 ? 0.7 : 1 }]}>
+          <MemoizedFishSVG species={species} size={renderSize * 1.5} isBaby={isBaby} />
        </View>
 
     </View>

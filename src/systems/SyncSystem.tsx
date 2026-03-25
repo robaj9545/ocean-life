@@ -37,7 +37,9 @@ export const SyncSystem = (entities: any, { time }: any) => {
           happiness: e.happiness,
           age: e.age,
           position: e.position,
-          direction: e.direction
+          direction: e.direction,
+          stage: e.stage,
+          health: e.health
         });
       }
     });

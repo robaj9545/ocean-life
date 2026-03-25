@@ -9,6 +9,11 @@ export const GrowthSystem = (entities: any, { time }: any) => {
       if (e.hunger > 50 && e.size < 60) {
         e.size += growthRate * dt;
       }
+
+      // Segredos do Mar mechanics: Stage transition
+      if (e.size >= 45 && e.stage === 'baby') {
+        e.stage = 'adult';
+      }
     }
   });
 
