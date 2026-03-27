@@ -1,23 +1,29 @@
 import React from 'react'
-import { View, Text, StyleSheet, FlatList, Dimensions } from 'react-native'
-import { LinearGradient } from 'expo-linear-gradient'
+import { View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity } from 'react-native'
+import { Backpack, X } from 'lucide-react-native'
 import { useGameStore } from '../store/useGameStore'
 import ClownfishSVG from '../components/fishes/Clownfish'
 import BlueTangSVG from '../components/fishes/BlueTang'
 
 const { width } = Dimensions.get('window')
-const CARD_WIDTH = (width - 60) / 2
+const CARD_WIDTH = (width * 0.7) / 5 - 16 // 5 columns compactodal (70% screen width)
 
-export default function InventoryScreen() {
+export default function InventoryScreen({ onClose }: { onClose?: () => void }) {
   const fishes = useGameStore(state => state.fishes)
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#00BFFF', '#1E90FF', '#00008B']} style={StyleSheet.absoluteFillObject} />
-
       <View style={styles.header}>
-        <Text style={styles.title}>Meus Peixes</Text>
-        <Text style={styles.subtitle}>{fishes.length} Nadando no Aquário</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Backpack color="#fff" size={20} style={{ marginRight: 8 }} />
+          <Text style={styles.title}>Meus Peixes</Text>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Text style={styles.subtitle}>{fishes.length} Nadando no Aquário</Text>
+          <TouchableOpacity onPress={onClose} style={{ marginLeft: 25, padding: 5, backgroundColor: 'rgba(255,0,0,0.6)', borderRadius: 12 }}>
+            <X color="#fff" size={24} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {fishes.length === 0 ? (
@@ -28,12 +34,12 @@ export default function InventoryScreen() {
         <FlatList
           data={fishes}
           keyExtractor={item => item.id.toString()}
-          numColumns={2}
+          numColumns={4}
           contentContainerStyle={styles.listContainer}
           renderItem={({ item }) => (
             <View style={styles.card}>
               <View style={styles.previewBox}>
-                 {item.species === 'bluetang' ? <BlueTangSVG size={70} isBaby={item.stage === 'baby'} /> : <ClownfishSVG size={70} isBaby={item.stage === 'baby'} />}
+                 {item.species === 'bluetang' ? <BlueTangSVG size={60} isBaby={item.stage === 'baby'} /> : <ClownfishSVG size={60} isBaby={item.stage === 'baby'} />}
               </View>
               <Text style={styles.fishName} numberOfLines={1}>{item.species === 'clownfish' ? 'Peixe-Palhaço' : 'Cirurgião-Patela'}</Text>
               <Text style={styles.infoText}>Fome: {Math.floor(item.hunger)}%</Text>
@@ -52,33 +58,34 @@ export default function InventoryScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    backgroundColor: 'rgba(0,0,0,0.2)'
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.2)',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
   },
-  title: { fontSize: 32, fontWeight: '900', color: '#fff', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 3 },
-  subtitle: { color: '#e0e0e0', fontSize: 16, marginTop: 5, fontWeight: 'bold' },
-  listContainer: { padding: 20, paddingBottom: 100 },
+  title: { fontSize: 20, fontWeight: '900', color: '#fff', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2 },
+  subtitle: { color: '#e0e0e0', fontSize: 13, fontWeight: 'bold' },
+  listContainer: { padding: 15, alignItems: 'center', paddingBottom: 40 },
   card: {
     width: CARD_WIDTH,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 15,
-    padding: 15,
-    marginRight: 20,
-    marginBottom: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 12,
+    padding: 10,
+    margin: 8,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 5
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
+    elevation: 3
   },
-  previewBox: { width: '100%', height: 80, backgroundColor: '#E0F7FA', borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginBottom: 10, borderWidth: 1, borderColor: '#B2EBF2' },
-  fishName: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 5 },
-  infoText: { fontSize: 12, color: '#666', marginBottom: 2, fontWeight: 'bold' },
-  statusBadge: { marginTop: 10, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
-  statusText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
-  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
-  emptyText: { color: '#fff', fontSize: 18, textAlign: 'center', fontWeight: 'bold' }
+  previewBox: { width: '100%', height: 70, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
+  fishName: { fontSize: 13, fontWeight: '900', color: '#333', marginBottom: 4 },
+  infoText: { fontSize: 10, color: '#555', marginBottom: 2, fontWeight: 'bold' },
+  statusBadge: { marginTop: 6, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, width: '100%', alignItems: 'center' },
+  statusText: { color: '#fff', fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
+  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  emptyText: { color: '#fff', fontSize: 16, fontWeight: 'bold' }
 })

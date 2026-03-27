@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { economyService } from '../services/economyService'
+import { fishService } from '../services/fishService'
 
 export interface FishEntity {
   id: string;
@@ -104,7 +105,9 @@ export const useGameStore = create<GameState>()(
     }),
     pushToCloud: () => {
       const s = get();
-      economyService.saveEconomy(s.coins, s.level, s.xp, s.fishes, s.deadFishes);
+      economyService.saveEconomy(s.coins, s.level, s.xp);
+      fishService.saveFishes(s.fishes);
+      fishService.saveDeadFishes(s.deadFishes);
     }
   })
 )

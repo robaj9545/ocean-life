@@ -1,28 +1,37 @@
 import { supabase } from './supabase'
 
 export const economyService = {
-  saveEconomy: async (coins: number, level: number, xp: number, fishes: any[], deadFishes: any[]) => {
+  saveEconomy: async (coins: number, level: number, xp: number) => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .update({ coins: Math.floor(coins), level, xp, fishes, dead_fishes: deadFishes })
-      .eq('id', user.id)
+    // Run updates in parallel to save time
+    const [coinsRes, levelRes, xpRes] = await Promise.all([
+      supabase.from('coins').upsert({ profile_id: user.id, amount: Math.floor(coins) }),
+      supabase.from('level').upsert({ profile_id: user.id, value: level }),
+      supabase.from('xp').upsert({ profile_id: user.id, amount: xp })
+    ])
     
-    return { data, error }
+    return { data: { coinsRes, levelRes, xpRes }, error: coinsRes.error || levelRes.error || xpRes.error }
   },
 
   loadEconomy: async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { data: null, error: 'No user' }
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('coins, level, xp, fishes, dead_fishes')
-      .eq('id', user.id)
-      .single()
-      
-    return { data, error }
+    const [coinsRes, levelRes, xpRes] = await Promise.all([
+      supabase.from('coins').select('amount').eq('profile_id', user.id).single(),
+      supabase.from('level').select('value').eq('profile_id', user.id).single(),
+      supabase.from('xp').select('amount').eq('profile_id', user.id).single()
+    ])
+
+    return { 
+      data: {
+        coins: coinsRes.data?.amount ?? 0,
+        level: levelRes.data?.value ?? 1,
+        xp: xpRes.data?.amount ?? 0
+      }, 
+      error: coinsRes.error || levelRes.error || xpRes.error 
+    }
   }
 }

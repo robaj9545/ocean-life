@@ -1,3 +1,7 @@
+import { Dimensions } from 'react-native';
+
+const { height } = Dimensions.get('window');
+
 export const CollisionSystem = (entities: any, { time }: any) => {
   const dt = time?.delta || 16;
   const fishes = Object.values(entities).filter((e: any) => e.type === 'fish');
@@ -29,7 +33,7 @@ export const CollisionSystem = (entities: any, { time }: any) => {
     const food = entities[foodKey];
     if (food) {
       food.position.y += 2 * (dt / 16); // constant fall speed
-      if (food.position.y > 800) {
+      if (food.position.y > height + 50) {
         delete entities[foodKey]; // Cleanup missed food
       }
     }

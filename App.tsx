@@ -1,19 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { NavigationContainer } from '@react-navigation/native'
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { View, Text, ActivityIndicator } from 'react-native'
 import { supabase } from './src/services/supabase'
 import { economyService } from './src/services/economyService'
+import { fishService } from './src/services/fishService'
 import { useGameStore } from './src/store/useGameStore'
 
 import AquariumScreen from './src/screens/AquariumScreen'
-import ShopScreen from './src/screens/ShopScreen'
-import InventoryScreen from './src/screens/InventoryScreen'
-import BreedingScreen from './src/screens/BreedingScreen'
-import ProfileScreen from './src/screens/ProfileScreen'
 import LoginScreen from './src/screens/LoginScreen'
-
-const Tab = createBottomTabNavigator();
 
 export default function App() {
   const [session, setSession] = useState<any>(null)
@@ -23,14 +16,19 @@ export default function App() {
     const loadData = async (session: any) => {
       setSession(session);
       if (session?.user) {
-        const { data } = await economyService.loadEconomy();
-        if (data) {
+        const [economy, fishesObj, deadFishesObj] = await Promise.all([
+          economyService.loadEconomy(),
+          fishService.loadFishes(),
+          fishService.loadDeadFishes()
+        ]);
+        
+        if (economy.data) {
           useGameStore.setState({ 
-            coins: data.coins !== null ? data.coins : 500, 
-            level: data.level || 1,
-            xp: data.xp || 0,
-            fishes: data.fishes || [],
-            deadFishes: data.dead_fishes || []
+            coins: economy.data.coins !== null ? economy.data.coins : 500, 
+            level: economy.data.level || 1,
+            xp: economy.data.xp || 0,
+            fishes: fishesObj.data || [],
+            deadFishes: deadFishesObj.data || []
           });
           // Remove dead fishes older than 30 days
           useGameStore.getState().cleanupDeadFishes();
@@ -58,18 +56,12 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
+    <View style={{ flex: 1, backgroundColor: '#002244' }}>
       {session && session.user ? (
-        <Tab.Navigator id={undefined} screenOptions={{ headerShown: false, tabBarActiveTintColor: '#32CD32', tabBarStyle: { backgroundColor: '#f9f9f9' } }}>
-          <Tab.Screen name="Aquarium" component={AquariumScreen} options={{ tabBarLabel: 'Aquário' }} />
-          <Tab.Screen name="Shop" component={ShopScreen} options={{ tabBarLabel: 'Loja' }} />
-          <Tab.Screen name="Inventory" component={InventoryScreen} options={{ tabBarLabel: 'Inventário' }} />
-          <Tab.Screen name="Breeding" component={BreedingScreen} options={{ tabBarLabel: 'Cruzar' }} />
-          <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: 'Perfil' }} />
-        </Tab.Navigator>
+        <AquariumScreen />
       ) : (
         <LoginScreen />
       )}
-    </NavigationContainer>
+    </View>
   )
 }

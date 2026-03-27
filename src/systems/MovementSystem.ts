@@ -1,13 +1,17 @@
+import { Dimensions } from 'react-native';
+
+const { width, height } = Dimensions.get('window');
+
 export const MovementSystem = (entities: any, { time }: any) => {
   const dt = time.delta || 16;
   
   Object.values(entities).forEach((entity: any) => {
     if (entity.type === 'fish') {
-      // Wandering behavior
+      // Wandering behavior within the landscape boundaries
       if (!entity.target) {
         entity.target = {
-          x: Math.max(20, Math.random() * 350),
-          y: Math.max(50, Math.random() * 600)
+          x: Math.max(20, Math.random() * (width - 60)), // keep them inside the view
+          y: Math.max(80, Math.random() * (height - 100))
         }
       }
 

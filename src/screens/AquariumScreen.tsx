@@ -1,7 +1,9 @@
 import React, { useRef, useMemo, useEffect, useState } from 'react'
-import { TouchableWithoutFeedback, TouchableOpacity, View, Text, StyleSheet, Dimensions } from 'react-native'
-import { GameEngine } from 'react-native-game-engine'
+import { TouchableWithoutFeedback, TouchableOpacity, View, Text, StyleSheet, Modal, Dimensions, Image } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
+import { GameEngine } from 'react-native-game-engine'
+import { Coins, ShoppingCart, Backpack, Heart, X, Plus } from 'lucide-react-native'
+import AquariumScene3D from '../components/scene/AquariumScene3D'
 import { useGameStore } from '../store/useGameStore'
 import { CoinSystem } from '../systems/CoinSystem'
 import { CollisionSystem } from '../systems/CollisionSystem'
@@ -15,9 +17,15 @@ import Food from '../components/Food'
 import Coin from '../components/Coin'
 import Egg from '../components/Egg'
 
+// Import Modals (previously screens)
+import ShopScreen from './ShopScreen'
+import InventoryScreen from './InventoryScreen'
+import BreedingScreen from './BreedingScreen'
+import ProfileScreen from './ProfileScreen'
+
 const { width, height } = Dimensions.get('window')
 
-export default function AquariumScreen({ navigation }: any) {
+export default function AquariumScreen() {
   const engine = useRef<any>(null)
   
   const fishes = useGameStore(state => state.fishes)
@@ -27,6 +35,9 @@ export default function AquariumScreen({ navigation }: any) {
   const addCoins = useGameStore(state => state.addCoins)
   const [engineReady, setEngineReady] = useState(false)
   const [selectedFish, setSelectedFish] = useState<any>(null)
+  
+  // Navigation State
+  const [activeModal, setActiveModal] = useState<'Shop' | 'Inventory' | 'Breeding' | 'Profile' | null>(null)
 
   // Initialize entities once for the game engine from persistent store
   const initialEntities = useMemo(() => {
@@ -43,138 +54,63 @@ export default function AquariumScreen({ navigation }: any) {
 
   return (
     <View style={{ flex: 1 }}>
-      {/* Background Gradient (Water) */}
-      <LinearGradient colors={['#00BFFF', '#1E90FF', '#00008B']} style={StyleSheet.absoluteFillObject} />
-      
-      {/* Sand floor */}
-      <View style={styles.sandFloor} />
+      {/* 2D VIBRANT TROPICAL OCEAN BACKGROUND */}
+      <LinearGradient 
+        colors={['#4facfe', '#00f2fe', '#0652DD']} 
+        style={StyleSheet.absoluteFillObject} 
+      />
 
-      {/* Decorative Corals & Seaweed */}
-      <Text style={[styles.decor, { left: 20, bottom: 40, fontSize: 60 }]}>🪸</Text>
-      <Text style={[styles.decor, { right: 80, bottom: 30, fontSize: 50 }]}>🌿</Text>
-      <Text style={[styles.decor, { left: 120, bottom: 20, fontSize: 40 }]}>🪨</Text>
-      <Text style={[styles.decor, { right: 20, bottom: 60, fontSize: 55 }]}>🪸</Text>
-
-      {/* Ambient Bubbles */}
-      <View style={[styles.ambientBubble, { width: 40, height: 40, left: '20%', bottom: '30%' }]} />
-      <View style={[styles.ambientBubble, { width: 25, height: 25, left: '50%', bottom: '50%' }]} />
-      <View style={[styles.ambientBubble, { width: 60, height: 60, right: '15%', bottom: '60%' }]} />
-      <View style={[styles.ambientBubble, { width: 15, height: 15, right: '40%', bottom: '20%' }]} />
-
-      {/* UI Overlay: Segredos do Mar Top Bar */}
-      <View style={styles.topHud}>
-        <View style={styles.currencyBox}>
-          <Text style={styles.gemIcon}>💰</Text>
-          <Text style={styles.currencyText}>{Math.floor(coins)}</Text>
-        </View>
-        <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('Shop')}>
-          <Text style={styles.addText}>+</Text>
-        </TouchableOpacity>
-        
-        {/* Genuine Level & XP Bar */}
-        <View style={styles.xpBox}>
-          <Text style={styles.xpText}>Nível {level}</Text>
-          <View style={styles.xpBarContainer}>
-             <View style={[styles.xpBarFill, { width: `${Math.min(100, (xp / (level * 1000)) * 100)}%` }]} />
-          </View>
-          <Text style={styles.xpLabel}>{Math.floor(xp)}/{level * 1000} XP</Text>
-        </View>
+      {/* 2.5D CANVAS LAYER */}
+      <View style={StyleSheet.absoluteFillObject}>
+        <AquariumScene3D setSelectedFish={setSelectedFish} />
       </View>
 
-      <TouchableWithoutFeedback
-        onPress={(e) => {
-          if (engine.current) {
-            engine.current.dispatch({ 
-              type: 'TAP', 
-              payload: { x: e.nativeEvent.locationX, y: e.nativeEvent.locationY } 
-            })
-          }
-        }}
-      >
-        <View style={StyleSheet.absoluteFillObject}>
-          {engineReady && (
-            <GameEngine
-              ref={engine}
-              systems={[
-                MovementSystem,
-                HungerSystem,
-                GrowthSystem,
-                CoinSystem,
-                CollisionSystem,
-                SyncSystem,
-                BreedingSystem,
-                // Input Handler System
-                (entities, { events }) => {
-                  if (events) {
-                    events.forEach((ev: any) => {
-                      if (ev.type === 'TAP') {
-                        const { x, y } = ev.payload
-
-                        // 1. Check if tapped a coin
-                        let trappedCoin = false
-                        Object.keys(entities).forEach(k => {
-                          const e = entities[k]
-                          if (e.type === 'coin') {
-                            const dx = e.position.x - x
-                            const dy = e.position.y - y
-                            if (Math.sqrt(dx*dx + dy*dy) < 40) {
-                              addCoins(e.value)
-                              delete entities[k]
-                              trappedCoin = true
-                            }
-                          }
-                        })
-
-                        // 2. Check if tapped a fish (To show HUD info)
-                        let tappedFish = false
-                        if(!trappedCoin) {
-                          Object.keys(entities).forEach(k => {
-                            const e = entities[k]
-                            if (e.type === 'fish') {
-                              const dx = e.position.x - x
-                              const dy = e.position.y - y
-                              if (Math.sqrt(dx*dx + dy*dy) < e.size * 1.5) {
-                                setSelectedFish(e)
-                                tappedFish = true
-                              }
-                            }
-                          })
-                        }
-
-                        // 3. Drop food if blank space
-                        if (!trappedCoin && !tappedFish) {
-                          setSelectedFish(null) // clear selection
-                          const id = 'food_' + Math.random()
-                          entities[id] = {
-                            id,
-                            type: 'food',
-                            position: { x, y },
-                            renderer: <Food position={{x, y}} />
-                          }
-                        }
-                      } else if (ev.type === 'ADD_EGG') {
-                         const id = 'egg_' + Math.random()
-                         entities[id] = {
-                            id,
-                            type: 'egg',
-                            fishData: ev.payload.fish,
-                            incubationTime: 5000, 
-                            position: { x: width / 2, y: height - 150 },
-                            renderer: <Egg position={{x: width / 2, y: height - 150}}/>
-                         }
-                      } else if (ev.type === 'SELL_FISH') {
-                         delete entities[ev.payload.id];
-                      }
-                    })
-                  }
-                  return entities
-                }
-              ]}
-              entities={initialEntities}
-            />
-          )}
+      {/* TOP HUD */}
+      <View style={styles.topHud}>
+        {/* LEFTSIDE: COINS */}
+        <View style={styles.glassBox}>
+          <Coins color="#FFD700" size={18} style={{ marginRight: 6 }} />
+          <Text style={styles.currencyText}>{Math.floor(coins)}</Text>
+          <TouchableOpacity style={styles.addButton} onPress={() => setActiveModal('Shop')}>
+            <Plus color="#fff" size={16} strokeWidth={3} />
+          </TouchableOpacity>
         </View>
-      </TouchableWithoutFeedback>
+
+        {/* CENTER: NAV MENUS */}
+        <View style={styles.topNavCenter}>
+          <TouchableOpacity style={styles.navButton} onPress={() => setActiveModal('Shop')}>
+            <ShoppingCart color="#fff" size={20} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.navButton} onPress={() => setActiveModal('Inventory')}>
+            <Backpack color="#fff" size={20} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.navButton} onPress={() => setActiveModal('Breeding')}>
+            <Heart color="#fff" size={20} />
+          </TouchableOpacity>
+        </View>
+
+        {/* RIGHTSIDE: PROFILE */}
+        <TouchableOpacity style={styles.glassBox} onPress={() => setActiveModal('Profile')}>
+          <View style={styles.levelCircle}><Text style={styles.levelText}>{level}</Text></View>
+          <View style={styles.xpInfo}>
+             <Text style={styles.xpLabel}>NÍVEL {level}</Text>
+             <View style={styles.xpBarContainer}>
+               <View style={[styles.xpBarFill, { width: `${Math.min(100, (xp / (level * 1000)) * 100)}%` }]} />
+             </View>
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* INVISIBLE GAME ENGINE (For background logic like Hunger and Supabase syncing) */}
+      <View style={{ position: 'absolute', width: 0, height: 0, opacity: 0 }} pointerEvents="none">
+        {engineReady && (
+          <GameEngine
+            ref={engine}
+            systems={[HungerSystem, GrowthSystem, SyncSystem, BreedingSystem]}
+            entities={initialEntities}
+          />
+        )}
+      </View>
 
       {selectedFish && (
         <View style={styles.glassPanel}>
@@ -220,6 +156,21 @@ export default function AquariumScreen({ navigation }: any) {
           )}
         </View>
       )}
+
+      {/* MODAL OVERLAYS */}
+      {activeModal && (
+        <Modal transparent animationType="fade" visible={!!activeModal}>
+          <View style={styles.modalBackdrop}>
+             <View style={styles.modalContent}>
+               {activeModal === 'Shop' && <ShopScreen onClose={() => setActiveModal(null)} />}
+               {activeModal === 'Inventory' && <InventoryScreen onClose={() => setActiveModal(null)} />}
+               {activeModal === 'Breeding' && <BreedingScreen onClose={() => setActiveModal(null)} />}
+               {activeModal === 'Profile' && <ProfileScreen onClose={() => setActiveModal(null)} />}
+             </View>
+          </View>
+        </Modal>
+      )}
+
     </View>
   )
 }
@@ -240,111 +191,121 @@ const styles = StyleSheet.create({
   },
   topHud: {
     position: 'absolute',
-    top: 50,
+    top: 20,
     left: 20,
     right: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    minWidth: 100,
     zIndex: 10
   },
-  currencyBox: {
+  sunRay: {
+    position: 'absolute',
+    top: -100,
+    width: 120,
+    height: '150%',
+    backgroundColor: '#fff',
+    opacity: 0.08,
+  },
+  glassBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    padding: 5,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 3
   },
   gemIcon: {
-    fontSize: 20,
-    marginRight: 5
+    fontSize: 16,
+    marginRight: 4
   },
   currencyText: {
     color: '#FFD700',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginRight: 10
+    fontSize: 16,
+    fontWeight: '900',
+    marginRight: 8,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: {width: 1, height: 1},
+    textShadowRadius: 1
   },
-  plusBtn: {
+  addButton: {
     backgroundColor: '#32CD32',
-    borderRadius: 15,
-    width: 25,
-    height: 25,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#fff'
   },
-  plusText: {
+  addText: {
     color: '#fff',
+    fontSize: 14,
     fontWeight: 'bold',
-    lineHeight: 22
-  },
-  levelBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    lineHeight: 18
   },
   levelCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#1E90FF',
-    borderWidth: 2,
-    borderColor: '#FFD700',
-    alignItems: 'center',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#FFD700',
     justifyContent: 'center',
-    zIndex: 2
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFA500',
+    marginRight: 8
   },
   levelText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 18
+    color: '#8B4513',
+    fontWeight: '900',
+    fontSize: 14
   },
-  xpBox: {
-    marginLeft: 'auto',
-    alignItems: 'flex-end'
-  },
-  xpText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 14,
-    marginBottom: 2,
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2
-  },
-  xpBarContainer: {
-    width: 100,
-    height: 8,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginBottom: 2
-  },
-  xpBarFill: {
-    height: '100%',
-    backgroundColor: '#FFD700',
-    borderRadius: 4
-  },
-  xpBar: {
-    width: 120,
-    height: 20,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 10,
-    marginLeft: -10,
-    overflow: 'hidden',
-    justifyContent: 'center',
-    paddingLeft: 15
-  },
-  xpFill: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    backgroundColor: '#20B2AA' // LightSeaGreen
+  xpInfo: {
+    justifyContent: 'center'
   },
   xpLabel: {
     color: '#fff',
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: 'bold',
-    zIndex: 1
+    marginBottom: 2,
+    letterSpacing: 0.5
+  },
+  xpBarContainer: {
+    width: 80,
+    height: 6,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 3,
+    overflow: 'hidden'
+  },
+  xpBarFill: {
+    height: '100%',
+    backgroundColor: '#32CD32',
+    borderRadius: 4
+  },
+  topNavCenter: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 10
+  },
+  navButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 15,
+    marginHorizontal: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)'
   },
   ambientBubble: {
     position: 'absolute',
@@ -421,5 +382,45 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
     letterSpacing: 1
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  closeModalButton: {
+    position: 'absolute',
+    top: 25,
+    right: 30,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,0,0,0.8)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+    zIndex: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 3
+  },
+  closeModalText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 12,
+    textTransform: 'uppercase'
+  },
+  modalContent: {
+    width: '70%',
+    height: '75%',
+    backgroundColor: 'rgba(10, 30, 60, 0.9)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    overflow: 'hidden'
   }
 })

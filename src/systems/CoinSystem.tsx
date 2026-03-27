@@ -1,7 +1,8 @@
 import React from 'react'
-import { TouchableOpacity, Text } from 'react-native'
+import { TouchableOpacity, Text, Dimensions } from 'react-native'
 import { useGameStore } from '../store/useGameStore'
-import Coin from '../components/Coin'
+
+const { height } = Dimensions.get('window')
 
 export const CoinSystem = (entities: any, { time }: any) => {
   // Chance to spawn coin occasionally per fish
@@ -18,7 +19,7 @@ export const CoinSystem = (entities: any, { time }: any) => {
           value: coinValue,
           position: coinPosition,
           renderer: (
-             <TouchableOpacity style={{ position: 'absolute', left: coinPosition.x - 15, top: coinPosition.y - 15, width: 30, height: 30, justifyContent: 'center', alignItems: 'center' }} onPress={() => {
+             <TouchableOpacity style={{ position: 'absolute', left: coinPosition.x - 15, top: coinPosition.y - 15, width: 30, height: 30, justifyContent: 'center', alignItems: 'center', zIndex: 10 }} onPress={() => {
                 useGameStore.getState().addCoins(coinValue);
                 useGameStore.getState().addXp(coinValue * 2); // Grind XP!
                 delete entities[coinId];
@@ -36,7 +37,8 @@ export const CoinSystem = (entities: any, { time }: any) => {
     const e = entities[k];
     if (e.type === 'coin') {
       e.position.y += 1;
-      if (e.position.y > 800) {
+      // Clear coin when it falls past the screen height
+      if (e.position.y > height + 50) {
         delete entities[k];
       }
     }
