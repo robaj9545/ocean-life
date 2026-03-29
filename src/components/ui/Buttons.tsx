@@ -16,11 +16,13 @@ export function NavButton({
   label,
   onPress,
   accent,
+  badge,
 }: {
   icon: React.ReactNode
   label: string
   onPress: () => void
   accent: string
+  badge?: number | boolean
 }) {
   const scaleAnim = useRef(new Animated.Value(1)).current
   const onPressIn = () => Animated.spring(scaleAnim, { toValue: 0.88, useNativeDriver: true, tension: 300 }).start()
@@ -35,7 +37,14 @@ export function NavButton({
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
         />
-        <View style={[nb.iconWrap, { borderColor: `${accent}80` }]}>{icon}</View>
+        <View style={[nb.iconWrap, { borderColor: `${accent}80` }]}>
+           {icon}
+           {!!badge && (
+             <View style={nb.badge}>
+               {typeof badge === 'number' && badge > 0 ? <Text style={nb.badgeText}>{badge}</Text> : null}
+             </View>
+           )}
+        </View>
         <Text style={nb.label}>{label}</Text>
       </Pressable>
     </Animated.View>
@@ -50,8 +59,10 @@ const nb = StyleSheet.create({
     }),
   },
   gradient: { ...StyleSheet.absoluteFillObject },
-  iconWrap: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginBottom: 4 },
+  iconWrap: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginBottom: 4, position: 'relative' },
   label: { fontSize: 9, fontWeight: '700', color: 'rgba(255,255,255,0.7)', letterSpacing: 0.5, textTransform: 'uppercase' },
+  badge: { position: 'absolute', top: -4, right: -4, backgroundColor: '#FF3B30', minWidth: 14, height: 14, borderRadius: 7, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#fff' },
+  badgeText: { color: '#fff', fontSize: 8, fontWeight: '900' },
 })
 
 // ─── TabBar ─────────────────────────────────────────────────────────────────

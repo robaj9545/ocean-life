@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { economyService } from '../services/economyService'
 import { fishService } from '../services/fishService'
+import { statsService, UserStats } from '../services/statsService'
 
 export interface FishEntity {
   id: string;
@@ -45,6 +46,16 @@ export interface GameState {
   cleanupDeadFishes: () => void;
   saveTimestamp: () => void;
   pushToCloud: () => void;
+  
+  // Stats & Missions
+  stats: UserStats;
+  claimedMissions: string[];
+  dailyProgress: Record<string, number>;
+  lastDailyReset: number;
+  setStatsData: (data: { stats: UserStats, claimedMissions: string[], dailyProgress: Record<string, number>, lastDailyReset: number }) => void;
+  incrementStat: (action: keyof UserStats, amount?: number) => void;
+  claimMission: (missionId: string, rewardCoins: number, rewardXp: number, isDaily: boolean) => void;
+  checkDailyReset: () => void;
 }
 
 let pushTimeout: any;
@@ -56,6 +67,7 @@ const debouncedPush = (get: () => GameState) => {
     economyService.saveEconomy(s.coins, s.level, s.xp, s.foodAmount);
     fishService.saveFishes(s.fishes);
     fishService.saveDeadFishes(s.deadFishes);
+    statsService.saveStats(s.stats, s.claimedMissions, s.dailyProgress, s.lastDailyReset);
   }, 5000);
 }
 
@@ -69,6 +81,11 @@ export const useGameStore = create<GameState>()(
     fishes: [],
     deadFishes: [],
     lastSaved: Date.now(),
+    
+    stats: { feed: 0, breed: 0, buy_fish: 0, collect_coin: 0, buy_food: 0, revive: 0 },
+    claimedMissions: [],
+    dailyProgress: {},
+    lastDailyReset: Date.now(),
     
     addCoins: (amount) => set((state) => {
       const next = { coins: state.coins + amount };
@@ -84,6 +101,7 @@ export const useGameStore = create<GameState>()(
       const state = get();
       if (state.foodAmount >= amount) {
          set({ foodAmount: state.foodAmount - amount });
+         get().incrementStat('feed', 1);
          setTimeout(() => get().pushToCloud(), 100);
          return true;
       }
@@ -94,6 +112,7 @@ export const useGameStore = create<GameState>()(
       set((state) => ({ coinsInWater: state.coinsInWater.filter(c => c.id !== id) }));
       get().addCoins(value);
       get().addXp(value * 2);
+      get().incrementStat('collect_coin', 1);
     },
     addXp: (amount) => set((state) => {
       let newXp = state.xp + amount;
@@ -126,7 +145,10 @@ export const useGameStore = create<GameState>()(
     reviveFish: (id, cost) => set((state) => {
       const ghost = state.deadFishes.find(f => f.id === id);
       if (!ghost || state.coins < cost) return state;
-      setTimeout(() => get().pushToCloud(), 100);
+      setTimeout(() => {
+         get().incrementStat('revive', 1);
+         get().pushToCloud();
+      }, 100);
       return {
         coins: state.coins - cost,
         deadFishes: state.deadFishes.filter(f => f.id !== id),
@@ -145,6 +167,34 @@ export const useGameStore = create<GameState>()(
       get().pushToCloud();
       return { lastSaved: Date.now() };
     }),
+    
+    setStatsData: (data) => set(() => ({ ...data })),
+    
+    incrementStat: (action, amount = 1) => set((state) => {
+      const newStats = { ...state.stats, [action]: (state.stats[action] || 0) + amount };
+      const newDaily = { ...state.dailyProgress, [action]: (state.dailyProgress[action] || 0) + amount };
+      setTimeout(() => get().pushToCloud(), 100);
+      return { stats: newStats, dailyProgress: newDaily };
+    }),
+    
+    checkDailyReset: () => set((state) => {
+      const now = Date.now();
+      const ONE_DAY = 24 * 60 * 60 * 1000;
+      if (now - state.lastDailyReset > ONE_DAY) {
+        // Reset daily missions progress and last reset time
+        const newClaimed = state.claimedMissions.filter(id => !id.startsWith('daily_'));
+        setTimeout(() => get().pushToCloud(), 100);
+        return { dailyProgress: {}, claimedMissions: newClaimed, lastDailyReset: now };
+      }
+      return state;
+    }),
+    
+    claimMission: (missionId, rewardCoins, rewardXp, isDaily) => {
+      set((state) => ({ claimedMissions: [...state.claimedMissions, missionId] }));
+      get().addCoins(rewardCoins);
+      get().addXp(rewardXp);
+    },
+
     pushToCloud: () => debouncedPush(get)
   })
 )

@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient'
-import { Backpack, ChevronUp, Coins, Drumstick, Heart, Plus, ShoppingCart, X } from 'lucide-react-native'
+import { Backpack, ChevronUp, Coins, Drumstick, Heart, Plus, ShoppingCart, X, CheckSquare } from 'lucide-react-native'
 import React, { useEffect, useRef, useState } from 'react'
 import {
   Animated,
@@ -21,6 +21,8 @@ import BreedingScreen from './BreedingScreen'
 import InventoryScreen from './InventoryScreen'
 import ProfileScreen from './ProfileScreen'
 import ShopScreen from './ShopScreen'
+import MissionsScreen from './MissionsScreen'
+import { DAILY_MISSIONS, ACHIEVEMENTS } from '../data/missions'
 
 // Modulos UI Importados
 import { StatBar, CurrencyChip, LevelBadge } from '../components/ui/Stats'
@@ -38,7 +40,14 @@ export default function AquariumScreen() {
   const addCoins = useGameStore(state => state.addCoins)
   const consumeFood = useGameStore(state => state.consumeFood)
   const foodAmount = useGameStore(state => state.foodAmount)
+  const stats = useGameStore(state => state.stats)
+  const dailyProgress = useGameStore(state => state.dailyProgress)
+  const claimedMissions = useGameStore(state => state.claimedMissions)
   const [selectedFish, setSelectedFish] = useState<any>(null)
+
+  const pendingDailies = DAILY_MISSIONS.filter(m => !claimedMissions.includes(m.id) && (dailyProgress[m.action] || 0) >= m.targetAmount).length
+  const pendingAchv = ACHIEVEMENTS.filter(m => !claimedMissions.includes(m.id) && (stats[m.action as keyof typeof stats] || 0) >= m.targetAmount).length
+  const totalPending = pendingDailies + pendingAchv
 
   // Hungry tracking
   const hungryRefs = useRef<any>({})
@@ -57,7 +66,7 @@ export default function AquariumScreen() {
     return () => clearInterval(iv)
   }, [])
 
-  const [activeModal, setActiveModal] = useState<'Shop' | 'Inventory' | 'Breeding' | 'Profile' | null>(null)
+  const [activeModal, setActiveModal] = useState<'Shop' | 'Inventory' | 'Breeding' | 'Profile' | 'Missions' | null>(null)
 
   useGameLoop()
 
@@ -158,6 +167,13 @@ export default function AquariumScreen() {
           onPress={() => setActiveModal('Breeding')}
           accent="#FF6B9D"
         />
+        <NavButton
+          icon={<CheckSquare color="#00E5A0" size={18} strokeWidth={2} />}
+          label="Missões"
+          onPress={() => setActiveModal('Missions')}
+          accent="#00E5A0"
+          badge={totalPending}
+        />
         {/* <NavButton
           icon={<Zap color="#FFD700" size={18} strokeWidth={2} />}
           label="Batalha"
@@ -192,6 +208,7 @@ export default function AquariumScreen() {
                 {activeModal === 'Inventory' && <InventoryScreen onClose={() => setActiveModal(null)} />}
                 {activeModal === 'Breeding' && <BreedingScreen onClose={() => setActiveModal(null)} />}
                 {activeModal === 'Profile' && <ProfileScreen onClose={() => setActiveModal(null)} />}
+                {activeModal === 'Missions' && <MissionsScreen onClose={() => setActiveModal(null)} />}
               </View>
            </View>
          </Modal>

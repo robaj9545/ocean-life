@@ -31,6 +31,7 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
   const addFish = useGameStore(state => state.addFish)
   const reviveFish = useGameStore(state => state.reviveFish)
   const addFood = useGameStore(state => state.addFood)
+  const incrementStat = useGameStore(state => state.incrementStat)
 
   const tabOptions = [
     { id: 'shop', icon: <Store size={15} />, label: 'Loja', accent: '#00E5FF' },
@@ -42,6 +43,7 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
     if (coins >= price) {
       addCoins(-price)
       addFood(amount)
+      incrementStat('buy_food', 1)
       Alert.alert('✅ Comprado!', `${amount} porções de ração adicionadas!`)
     } else {
       Alert.alert('❌ Saldo insuficiente', 'Você não tem moedas suficientes!')
@@ -55,6 +57,7 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
       const { data } = await fishService.createFishOnServer(fishData)
       if (data) {
         addFish(data)
+        incrementStat('buy_fish', 1)
         Alert.alert('🎉 Comprado!', `Seu ${species} filhote já está no aquário!`)
       } else {
         addCoins(price)

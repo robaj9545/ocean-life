@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { supabase } from './src/services/supabase'
 import { economyService } from './src/services/economyService'
 import { fishService } from './src/services/fishService'
+import { statsService } from './src/services/statsService'
 import { useGameStore } from './src/store/useGameStore'
 import { calculateOfflineProgress } from './src/utils/time'
 
@@ -23,10 +24,11 @@ export default function App() {
     const loadData = async (session: any) => {
       setSession(session);
       if (session?.user) {
-        const [economy, fishesObj, deadFishesObj] = await Promise.all([
+        const [economy, fishesObj, deadFishesObj, statsObj] = await Promise.all([
           economyService.loadEconomy(),
           fishService.loadFishes(),
-          fishService.loadDeadFishes()
+          fishService.loadDeadFishes(),
+          statsService.loadStats()
         ]);
         
         if (economy.data) {
@@ -43,6 +45,16 @@ export default function App() {
             deadFishes: deadFishesObj.data || [],
             lastSaved: localLastSaved
           });
+          
+          if (statsObj.data) {
+             useGameStore.getState().setStatsData({
+               stats: statsObj.data.stats,
+               claimedMissions: statsObj.data.claimedMissions,
+               dailyProgress: statsObj.data.dailyProgress,
+               lastDailyReset: statsObj.data.lastDailyReset || Date.now()
+             });
+             useGameStore.getState().checkDailyReset();
+          }
           // Remove dead fishes older than 30 days
           useGameStore.getState().cleanupDeadFishes();
           

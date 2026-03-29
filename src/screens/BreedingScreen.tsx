@@ -21,6 +21,7 @@ import { FishCard, FishSlot, PulseHeart } from '../components/screens/BreedingCo
 export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
   const fishes = useGameStore(state => state.fishes)
   const addFish = useGameStore(state => state.addFish)
+  const incrementStat = useGameStore(state => state.incrementStat)
   const [selected, setSelected] = useState<FishEntity[]>([])
   const [breeding, setBreeding] = useState(false)
   const breedAnim = useRef(new Animated.Value(1)).current
@@ -51,6 +52,7 @@ export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
     const { data } = await fishService.createFishOnServer(newFishData)
     if (data) {
       addFish(data)
+      incrementStat('breed', 1)
       Alert.alert(
         '💕 Nascimento!',
         `Um lindo ${data.species === 'clownfish' ? 'Peixe-Palhaço' : 'Cirurgião-Patela'} filhote chegou!`,
