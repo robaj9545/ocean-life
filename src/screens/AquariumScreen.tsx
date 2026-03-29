@@ -176,11 +176,11 @@ export default function AquariumScreen() {
       )}
 
       {/* ── FISH COUNT INDICATOR ── */}
-      {!selectedFish && (
+      {/* {!selectedFish && (
         <View style={styles.fishCount}>
           <Text style={styles.fishCountText}>🐠 {fishes.length} peixes</Text>
         </View>
-      )}
+      )} */}
 
       {/* ── MODALS ── */}
 

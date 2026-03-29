@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, ActivityIndicator } from 'react-native'
+import { View, Text, ActivityIndicator, LogBox } from 'react-native'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { supabase } from './src/services/supabase'
 import { economyService } from './src/services/economyService'
 import { fishService } from './src/services/fishService'
@@ -13,6 +14,11 @@ export default function App() {
   const [session, setSession] = useState<any>(null)
   const [isReady, setIsReady] = useState(false)
 
+  // Ignore multiple instances of Three.js warning usually caused by generic Expo setup
+  useEffect(() => {
+    LogBox.ignoreLogs(['THREE.WARNING: Multiple instances of Three.js being imported.']);
+  }, []);
+
   useEffect(() => {
     const loadData = async (session: any) => {
       setSession(session);
@@ -24,22 +30,25 @@ export default function App() {
         ]);
         
         if (economy.data) {
+          // Load lastSaved from AsyncStorage
+          const lastSavedStr = await AsyncStorage.getItem('@last_saved_time');
+          const localLastSaved = lastSavedStr ? parseInt(lastSavedStr) : Date.now();
+          
           useGameStore.setState({ 
             coins: economy.data.coins !== null ? economy.data.coins : 500, 
             foodAmount: economy.data.foodAmount !== null ? economy.data.foodAmount : 50,
             level: economy.data.level || 1,
             xp: economy.data.xp || 0,
             fishes: fishesObj.data || [],
-            deadFishes: deadFishesObj.data || []
+            deadFishes: deadFishesObj.data || [],
+            lastSaved: localLastSaved
           });
           // Remove dead fishes older than 30 days
           useGameStore.getState().cleanupDeadFishes();
           
-          if (economy.data?.lastSaved) {
-            const { coins: offlineCoins } = calculateOfflineProgress(economy.data.lastSaved);
-            if (offlineCoins > 0) {
-              useGameStore.getState().addCoins(Math.floor(offlineCoins));
-            }
+          const { coins: offlineCoins } = calculateOfflineProgress(localLastSaved);
+          if (offlineCoins > 0) {
+            useGameStore.getState().addCoins(Math.floor(offlineCoins));
           }
         }
       }

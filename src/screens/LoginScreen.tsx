@@ -13,6 +13,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  ScrollView,
 } from 'react-native'
 import { supabase } from '../services/supabase'
 
@@ -216,7 +217,8 @@ export default function LoginScreen() {
         style={s.kav}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* Logo / Hero */}
+        <ScrollView contentContainerStyle={s.scrollContent} style={s.scroll} showsVerticalScrollIndicator={false}>
+          {/* Logo / Hero */}
         <Animated.View
           style={[
             s.logoSection,
@@ -304,6 +306,7 @@ export default function LoginScreen() {
         </Animated.View>
 
         <Text style={s.footer}>🔒 Seus dados estão seguros e criptografados</Text>
+        </ScrollView>
       </KeyboardAvoidingView>
     </View>
   )
@@ -311,7 +314,9 @@ export default function LoginScreen() {
 
 const s = StyleSheet.create({
   container: { flex: 1 },
-  kav: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 },
+  kav: { flex: 1 },
+  scroll: { flex: 1, width: '100%' },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40, paddingHorizontal: 28 },
 
   // Logo
   logoSection: { alignItems: 'center', marginBottom: 32, gap: 10 },

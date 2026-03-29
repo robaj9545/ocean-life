@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { economyService } from '../services/economyService'
 import { fishService } from '../services/fishService'
 
@@ -51,7 +52,8 @@ const debouncedPush = (get: () => GameState) => {
   if (pushTimeout) clearTimeout(pushTimeout);
   pushTimeout = setTimeout(() => {
     const s = get();
-    economyService.saveEconomy(s.coins, s.level, s.xp);
+    AsyncStorage.setItem('@last_saved_time', Date.now().toString()).catch(() => {});
+    economyService.saveEconomy(s.coins, s.level, s.xp, s.foodAmount);
     fishService.saveFishes(s.fishes);
     fishService.saveDeadFishes(s.deadFishes);
   }, 5000);
@@ -114,7 +116,7 @@ export const useGameStore = create<GameState>()(
     updateFishes: (updater) => set((state) => ({ fishes: updater(state.fishes) })),
     killFish: (id) => set((state) => {
       const deceased = state.fishes.find(f => f.id === id);
-      if (!deceased) return state;
+      if (!deceased || state.deadFishes.some(f => f.id === id)) return state;
       setTimeout(() => get().pushToCloud(), 100);
       return {
         fishes: state.fishes.filter(f => f.id !== id),
@@ -139,6 +141,7 @@ export const useGameStore = create<GameState>()(
       };
     }),
     saveTimestamp: () => set((state) => {
+      AsyncStorage.setItem('@last_saved_time', Date.now().toString()).catch(() => {});
       get().pushToCloud();
       return { lastSaved: Date.now() };
     }),

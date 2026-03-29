@@ -1,8 +1,7 @@
 import { supabase } from './supabase'
-import { useGameStore } from '../store/useGameStore'
 
 export const economyService = {
-  saveEconomy: async (coins: number, level: number, xp: number) => {
+  saveEconomy: async (coins: number, level: number, xp: number, foodAmount: number) => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
 
@@ -11,7 +10,7 @@ export const economyService = {
       supabase.from('coins').upsert({ profile_id: user.id, amount: Math.floor(coins) }),
       supabase.from('level').upsert({ profile_id: user.id, value: level }),
       supabase.from('xp').upsert({ profile_id: user.id, amount: xp }),
-      supabase.from('foods').upsert({ profile_id: user.id, amount: useGameStore.getState().foodAmount })
+      supabase.from('foods').upsert({ profile_id: user.id, amount: foodAmount })
     ])
     
     return { data: { coinsRes, levelRes, xpRes, foodRes }, error: coinsRes.error || levelRes.error || xpRes.error || foodRes.error }

@@ -8,6 +8,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  ScrollView,
 } from 'react-native'
 import { supabase } from '../services/supabase'
 import { useGameStore } from '../store/useGameStore'
@@ -59,7 +60,7 @@ export default function ProfileScreen({ onClose }: { onClose?: () => void }) {
 
       <View style={s.divider} />
 
-      <View style={s.body}>
+      <ScrollView contentContainerStyle={s.body} style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         {/* Hero section */}
         <View style={s.hero}>
           <LinearGradient
@@ -135,7 +136,7 @@ export default function ProfileScreen({ onClose }: { onClose?: () => void }) {
             <Text style={s.logoutText}>Desconectar</Text>
           </LinearGradient>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </View>
   )
 }
@@ -172,7 +173,7 @@ const s = StyleSheet.create({
   },
   divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginHorizontal: 18 },
 
-  body: { flex: 1, padding: 14, gap: 12 },
+  body: { flexGrow: 1, padding: 14, gap: 12, paddingBottom: 40 },
 
   // Hero
   hero: {

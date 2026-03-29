@@ -193,7 +193,7 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
 
                 return (
                   <ShopCard
-                    key={ghost.id}
+                    key={`${ghost.id}-${i}`}
                     index={i}
                     title={ghost.species === 'clownfish' ? 'Peixe-Palhaço' : 'Cirurgião-Patela'}
                     description="Pode ser ressuscitado com uma dose de magia."
@@ -252,7 +252,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginHorizontal: 18 },
-  scroll: { paddingVertical: 10, paddingHorizontal: 8, paddingBottom: 30 },
+  scroll: { paddingVertical: 10, paddingHorizontal: 8, paddingBottom: 40 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
   empty: { width: '100%', alignItems: 'center', paddingVertical: 40, gap: 10 },
   emptyEmoji: { fontSize: 48 },

@@ -82,7 +82,7 @@ export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
 
       <View style={s.divider} />
 
-      <View style={s.body}>
+      <ScrollView contentContainerStyle={s.body} style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         {/* LEFT: Breeding station */}
         <View style={s.station}>
           {/* Fish slots */}
@@ -130,7 +130,7 @@ export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
         {/* RIGHT: Fish grid */}
         <View style={s.gridWrap}>
           <Text style={s.gridTitle}>Adultos disponíveis</Text>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.grid}>
+          <View style={s.grid}>
             {adults.length === 0 ? (
               <View style={s.empty}>
                 <Text style={s.emptyEmoji}>🐟</Text>
@@ -149,9 +149,9 @@ export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
                 ))}
               </View>
             )}
-          </ScrollView>
+          </View>
         </View>
-      </View>
+      </ScrollView>
     </View>
   )
 }
@@ -187,7 +187,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginHorizontal: 18 },
-  body: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', padding: 14, gap: 12 },
+  body: { flexDirection: 'row', flexWrap: 'wrap', padding: 14, gap: 12, paddingBottom: 40 },
 
   // Station (left)
   station: {

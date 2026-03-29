@@ -6,6 +6,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from 'react-native'
 import { useGameStore } from '../store/useGameStore'
 import { FishCard, SummaryBar } from '../components/screens/InventoryComponents'
@@ -15,6 +16,8 @@ import { FishCard, SummaryBar } from '../components/screens/InventoryComponents'
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function InventoryScreen({ onClose }: { onClose?: () => void }) {
   const fishes = useGameStore(state => state.fishes)
+  const { width } = useWindowDimensions();
+  const numCols = width > 600 ? 3 : 2;
 
   return (
     <View style={s.container}>
@@ -48,10 +51,11 @@ export default function InventoryScreen({ onClose }: { onClose?: () => void }) {
         </View>
       ) : (
         <FlatList
+          key={numCols} // Required to force re-render when changing columns
           data={fishes}
           keyExtractor={item => item.id.toString()}
-          numColumns={2} // Better responsive layout for general phones
-          columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: 10 }}
+          numColumns={numCols}
+          columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: 10, gap: 10 }}
           contentContainerStyle={s.list}
           showsVerticalScrollIndicator={false}
           renderItem={({ item, index }) => <FishCard item={item} index={index} />}
@@ -92,7 +96,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginHorizontal: 18 },
-  list: { padding: 10, paddingBottom: 24 },
+  list: { padding: 10, paddingBottom: 40 },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
   emptyEmoji: { fontSize: 52 },
   emptyTitle: { fontSize: 18, fontWeight: '900', color: 'rgba(255,255,255,0.7)' },
