@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+
+
 import { OrthographicCamera } from '@react-three/drei';
+import { Canvas, useFrame } from '@react-three/fiber';
+import React, { useState } from 'react';
+import * as THREE from 'three';
 import { useGameStore } from '../../store/useGameStore';
 import Fish3D from '../fishes/Fish3D';
 import Environment3D from './Environment3D';
-import * as THREE from 'three';
 
 const Food3D = ({ food }: { food: any }) => {
   const meshRef = React.useRef<THREE.Mesh>(null);
@@ -93,13 +95,9 @@ export default function AquariumScene3D({ setSelectedFish, hungryRefs }: Aquariu
         />
       ))}
 
-      {foods.map((food) => (
-         <Food3D key={food.id} food={food} />
-      ))}
-
-      {coinsInWater.map((coin) => (
+      {/* {coinsInWater.map((coin) => (
          <Coin3D key={coin.id} coin={coin} />
-      ))}
+      ))} */}
     </Canvas>
   );
 }

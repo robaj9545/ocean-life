@@ -1,33 +1,29 @@
 import { LinearGradient } from 'expo-linear-gradient'
-import { Backpack, ChevronUp, Coins, Drumstick, Heart, Plus, ShoppingCart, X, CheckSquare } from 'lucide-react-native'
+import { Backpack, CheckSquare, Coins, Drumstick, Heart, ShoppingCart } from 'lucide-react-native'
 import React, { useEffect, useRef, useState } from 'react'
 import {
-  Animated,
-  Dimensions, // can keep it for some fallbacks
-  useWindowDimensions,
+  Dimensions,
   Modal,
   Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+  StyleSheet, // can keep it for some fallbacks
+  useWindowDimensions,
+  View
 } from 'react-native'
 import AquariumScene3D from '../components/scene/AquariumScene3D'
 import { useGameLoop } from '../hooks/useGameLoop'
 import { useGameStore } from '../store/useGameStore'
 
+import { ACHIEVEMENTS, DAILY_MISSIONS } from '../data/missions'
 import BreedingScreen from './BreedingScreen'
 import InventoryScreen from './InventoryScreen'
+import MissionsScreen from './MissionsScreen'
 import ProfileScreen from './ProfileScreen'
 import ShopScreen from './ShopScreen'
-import MissionsScreen from './MissionsScreen'
-import { DAILY_MISSIONS, ACHIEVEMENTS } from '../data/missions'
 
 // Modulos UI Importados
-import { StatBar, CurrencyChip, LevelBadge } from '../components/ui/Stats'
 import { NavButton } from '../components/ui/Buttons'
 import { FishPanel, HungryBubble } from '../components/ui/Overlays'
+import { CurrencyChip, LevelBadge } from '../components/ui/Stats'
 
 const { width, height } = Dimensions.get('window')
 
@@ -174,12 +170,7 @@ export default function AquariumScreen() {
           accent="#00E5A0"
           badge={totalPending}
         />
-        {/* <NavButton
-          icon={<Zap color="#FFD700" size={18} strokeWidth={2} />}
-          label="Batalha"
-          onPress={() => {}}
-          accent="#FFD700"
-        /> */}
+        
       </View>
 
       {/* ── FISH DETAIL PANEL ── */}
@@ -191,12 +182,8 @@ export default function AquariumScreen() {
         />
       )}
 
-      {/* ── FISH COUNT INDICATOR ── */}
-      {/* {!selectedFish && (
-        <View style={styles.fishCount}>
-          <Text style={styles.fishCountText}>🐠 {fishes.length} peixes</Text>
-        </View>
-      )} */}
+      
+      
 
       {/* ── MODALS ── */}
 
