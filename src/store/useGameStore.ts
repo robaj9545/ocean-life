@@ -6,7 +6,7 @@ export interface FishEntity {
   id: string;
   type: string;
   species: string;
-  rarity: string;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
   color: string;
   size: number;
   speed: number;
@@ -18,17 +18,24 @@ export interface FishEntity {
   stage?: string;
   health?: number;
   deathTime?: number;
+  dna?: any;
 }
 
 export interface GameState {
   coins: number;
+  foodAmount: number;
+  coinsInWater: { id: string; value: number; position: { x: number; y: number; z: number } }[];
   level: number;
   xp: number;
   fishes: FishEntity[];
   deadFishes: FishEntity[];
   lastSaved: number;
   addCoins: (amount: number) => void;
+  addFood: (amount: number) => void;
+  consumeFood: (amount: number) => boolean;
   addXp: (amount: number) => void;
+  spawnCoin: (coin: any) => void;
+  collectCoin: (id: string, value: number) => void;
   addFish: (fish: FishEntity) => void;
   removeFish: (id: string) => void;
   updateFishes: (updater: (fishes: FishEntity[]) => FishEntity[]) => void;
@@ -39,9 +46,22 @@ export interface GameState {
   pushToCloud: () => void;
 }
 
+let pushTimeout: any;
+const debouncedPush = (get: () => GameState) => {
+  if (pushTimeout) clearTimeout(pushTimeout);
+  pushTimeout = setTimeout(() => {
+    const s = get();
+    economyService.saveEconomy(s.coins, s.level, s.xp);
+    fishService.saveFishes(s.fishes);
+    fishService.saveDeadFishes(s.deadFishes);
+  }, 5000);
+}
+
 export const useGameStore = create<GameState>()(
   (set, get) => ({
     coins: 500,
+    foodAmount: 50,
+    coinsInWater: [],
     level: 1,
     xp: 0,
     fishes: [],
@@ -54,6 +74,25 @@ export const useGameStore = create<GameState>()(
       setTimeout(() => get().pushToCloud(), 100);
       return next;
     }),
+    addFood: (amount) => set((state) => {
+      setTimeout(() => get().pushToCloud(), 100);
+      return { foodAmount: state.foodAmount + amount };
+    }),
+    consumeFood: (amount) => {
+      const state = get();
+      if (state.foodAmount >= amount) {
+         set({ foodAmount: state.foodAmount - amount });
+         setTimeout(() => get().pushToCloud(), 100);
+         return true;
+      }
+      return false;
+    },
+    spawnCoin: (coin) => set((state) => ({ coinsInWater: [...state.coinsInWater, coin] })),
+    collectCoin: (id, value) => {
+      set((state) => ({ coinsInWater: state.coinsInWater.filter(c => c.id !== id) }));
+      get().addCoins(value);
+      get().addXp(value * 2);
+    },
     addXp: (amount) => set((state) => {
       let newXp = state.xp + amount;
       let newLevel = state.level;
@@ -103,11 +142,6 @@ export const useGameStore = create<GameState>()(
       get().pushToCloud();
       return { lastSaved: Date.now() };
     }),
-    pushToCloud: () => {
-      const s = get();
-      economyService.saveEconomy(s.coins, s.level, s.xp);
-      fishService.saveFishes(s.fishes);
-      fishService.saveDeadFishes(s.deadFishes);
-    }
+    pushToCloud: () => debouncedPush(get)
   })
 )

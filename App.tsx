@@ -4,6 +4,7 @@ import { supabase } from './src/services/supabase'
 import { economyService } from './src/services/economyService'
 import { fishService } from './src/services/fishService'
 import { useGameStore } from './src/store/useGameStore'
+import { calculateOfflineProgress } from './src/utils/time'
 
 import AquariumScreen from './src/screens/AquariumScreen'
 import LoginScreen from './src/screens/LoginScreen'
@@ -25,6 +26,7 @@ export default function App() {
         if (economy.data) {
           useGameStore.setState({ 
             coins: economy.data.coins !== null ? economy.data.coins : 500, 
+            foodAmount: economy.data.foodAmount !== null ? economy.data.foodAmount : 50,
             level: economy.data.level || 1,
             xp: economy.data.xp || 0,
             fishes: fishesObj.data || [],
@@ -32,6 +34,13 @@ export default function App() {
           });
           // Remove dead fishes older than 30 days
           useGameStore.getState().cleanupDeadFishes();
+          
+          if (economy.data?.lastSaved) {
+            const { coins: offlineCoins } = calculateOfflineProgress(economy.data.lastSaved);
+            if (offlineCoins > 0) {
+              useGameStore.getState().addCoins(Math.floor(offlineCoins));
+            }
+          }
         }
       }
       setIsReady(true);

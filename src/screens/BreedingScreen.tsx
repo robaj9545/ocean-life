@@ -1,109 +1,154 @@
-import React, { useState } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Alert } from 'react-native'
-import { Heart, Dna, X } from 'lucide-react-native'
-import { useGameStore, FishEntity } from '../store/useGameStore'
+import { LinearGradient } from 'expo-linear-gradient'
+import { Dna, Sparkles, X } from 'lucide-react-native'
+import React, { useRef, useState } from 'react'
+import {
+  Alert,
+  Animated,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native'
+import { fishService } from '../services/fishService'
+import { FishEntity, useGameStore } from '../store/useGameStore'
 import { breed } from '../utils/breeding'
-import ClownfishSVG from '../components/fishes/Clownfish'
-import BlueTangSVG from '../components/fishes/BlueTang'
+import { FishCard, FishSlot, PulseHeart } from '../components/screens/BreedingComponents'
 
-const { width } = Dimensions.get('window')
-const CARD_WIDTH = (width * 0.7 - 100) / 4
+// ─── Main ─────────────────────────────────────────────────────────────────────
 
+// ─── Main ─────────────────────────────────────────────────────────────────────
 export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
   const fishes = useGameStore(state => state.fishes)
   const addFish = useGameStore(state => state.addFish)
   const [selected, setSelected] = useState<FishEntity[]>([])
+  const [breeding, setBreeding] = useState(false)
+  const breedAnim = useRef(new Animated.Value(1)).current
 
   const adults = fishes.filter(f => f.stage === 'adult')
+  const canBreed = selected.length === 2
 
   const toggleSelect = (fish: FishEntity) => {
-    const isSelected = selected.find(f => f.id === fish.id)
-    if (isSelected) {
+    const already = selected.find(f => f.id === fish.id)
+    if (already) {
       setSelected(selected.filter(f => f.id !== fish.id))
+    } else if (selected.length < 2) {
+      setSelected([...selected, fish])
     } else {
-      if (selected.length < 2) {
-        setSelected([...selected, fish])
-      } else {
-        Alert.alert('Atenção', 'Você só pode selecionar 2 peixes para cruzar!')
-      }
+      Alert.alert('Atenção', 'Selecione apenas 2 peixes!')
     }
   }
 
-  const handleBreed = () => {
-    if (selected.length === 2) {
-      const newFish = breed(selected[0], selected[1])
-      addFish(newFish) 
-      Alert.alert('Sucesso! 💕', `Nasceu um lindo ${newFish.species === 'clownfish' ? 'Peixe-Palhaço' : 'Cirurgião-Patela'} filhote! Ele já está no Aquário.`)
+  const handleBreed = async () => {
+    if (!canBreed) return
+    setBreeding(true)
+    Animated.sequence([
+      Animated.timing(breedAnim, { toValue: 1.08, duration: 200, useNativeDriver: true }),
+      Animated.spring(breedAnim, { toValue: 1, useNativeDriver: true, tension: 200 }),
+    ]).start()
+
+    const newFishData = breed(selected[0], selected[1])
+    const { data } = await fishService.createFishOnServer(newFishData)
+    if (data) {
+      addFish(data)
+      Alert.alert(
+        '💕 Nascimento!',
+        `Um lindo ${data.species === 'clownfish' ? 'Peixe-Palhaço' : 'Cirurgião-Patela'} filhote chegou!`,
+      )
       setSelected([])
+    } else {
+      Alert.alert('Erro', 'Não foi possível cruzar os peixes.')
     }
-  }
-
-  const renderFishPreview = (fish: FishEntity | undefined) => {
-    if (!fish) return <View style={styles.emptyPreview}><Text style={styles.questionMark}>?</Text></View>
-    return (
-      <View style={styles.previewBox}>
-        {fish.species === 'bluetang' ? <BlueTangSVG size={60} isBaby={false} /> : <ClownfishSVG size={60} isBaby={false} />}
-      </View>
-    )
+    setBreeding(false)
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Dna color="#fff" size={20} style={{ marginRight: 8 }} />
-          <Text style={styles.title}>Laboratório de Genética</Text>
+    <View style={s.container}>
+      {/* Header */}
+      <View style={s.header}>
+        <View style={s.headerLeft}>
+          <View style={s.headerIcon}>
+            <Dna color="#FF69B4" size={18} strokeWidth={2} />
+          </View>
+          <View>
+            <Text style={s.title}>Criadouro</Text>
+            <Text style={s.subtitle}>Laboratório Genético</Text>
+          </View>
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Text style={styles.subtitle}>Selecione 2 peixes para cruzar</Text>
-          <TouchableOpacity onPress={onClose} style={{ marginLeft: 25, padding: 5, backgroundColor: 'rgba(255,0,0,0.6)', borderRadius: 12 }}>
-            <X color="#fff" size={24} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={s.closeBtn} onPress={onClose}>
+          <X color="rgba(255,255,255,0.6)" size={16} strokeWidth={2.5} />
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.contentRow}>
-        <View style={styles.loveBox}>
-          <Text style={styles.loveBoxTitle}>Pais Selecionados</Text>
-          <View style={styles.heartsContainer}>
-             {renderFishPreview(selected[0])}
-             <View style={{ marginHorizontal: 15 }}>
-               <Heart color="#FF1493" fill="#FF1493" size={32} />
-             </View>
-             {renderFishPreview(selected[1])}
+      <View style={s.divider} />
+
+      <View style={s.body}>
+        {/* LEFT: Breeding station */}
+        <View style={s.station}>
+          {/* Fish slots */}
+          <View style={s.slotRow}>
+            <FishSlot fish={selected[0]} label="Pai / Mãe" />
+            <PulseHeart active={canBreed} />
+            <FishSlot fish={selected[1]} label="Pai / Mãe" />
           </View>
-          <TouchableOpacity 
-            style={[styles.breedBtn, selected.length !== 2 && { backgroundColor: '#ccc' }]}
-            disabled={selected.length !== 2}
-            onPress={handleBreed}
-          >
-            <Text style={styles.breedText}>Cruzar Agora!</Text>
-          </TouchableOpacity>
+
+          {/* Counter */}
+          <Text style={s.counter}>
+            {selected.length} <Text style={{ color: 'rgba(255,255,255,0.4)' }}>/ 2 selecionados</Text>
+          </Text>
+
+          {/* Breed Button */}
+          <Animated.View style={{ width: '100%', transform: [{ scale: breedAnim }] }}>
+            <TouchableOpacity
+              style={[s.breedBtn, !canBreed && s.breedBtnDisabled]}
+              onPress={handleBreed}
+              disabled={!canBreed || breeding}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={canBreed ? ['#FF69B4', '#C71585'] : ['#444', '#333']}
+                style={s.breedGrad}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                <Sparkles color={canBreed ? '#fff' : 'rgba(255,255,255,0.3)'} size={16} strokeWidth={2} />
+                <Text style={[s.breedText, !canBreed && { color: 'rgba(255,255,255,0.3)' }]}>
+                  {breeding ? 'Cruzando...' : 'Cruzar Agora'}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
+
+          {/* Info pill */}
+          {!canBreed && (
+            <View style={s.infoPill}>
+              <Text style={s.infoText}>Selecione 2 peixes adultos →</Text>
+            </View>
+          )}
         </View>
 
-        <View style={{ flex: 1 }}>
-          <ScrollView contentContainerStyle={styles.listContainer}>
-            {adults.length === 0 && (
-              <Text style={styles.emptyText}>Nenhum peixe adulto disponível no Aquário.</Text>
+        {/* RIGHT: Fish grid */}
+        <View style={s.gridWrap}>
+          <Text style={s.gridTitle}>Adultos disponíveis</Text>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.grid}>
+            {adults.length === 0 ? (
+              <View style={s.empty}>
+                <Text style={s.emptyEmoji}>🐟</Text>
+                <Text style={s.emptyText}>Nenhum adulto{'\n'}no aquário</Text>
+              </View>
+            ) : (
+              <View style={s.gridInner}>
+                {adults.map((fish, i) => (
+                  <FishCard
+                    key={fish.id}
+                    fish={fish}
+                    index={i}
+                    isSelected={!!selected.find(f => f.id === fish.id)}
+                    onPress={() => toggleSelect(fish)}
+                  />
+                ))}
+              </View>
             )}
-            <View style={styles.grid}>
-              {adults.map(item => {
-                const isSelected = selected.find(f => f.id === item.id)
-                return (
-                  <TouchableOpacity 
-                    key={item.id} 
-                    style={[styles.card, isSelected && styles.cardSelected]}
-                    onPress={() => toggleSelect(item)}
-                  >
-                    <View style={[styles.previewBoxSmall, isSelected && { backgroundColor: '#FFC0CB', borderColor: '#FF69B4' }]}>
-                       {item.species === 'bluetang' ? <BlueTangSVG size={45} isBaby={false} /> : <ClownfishSVG size={45} isBaby={false} />}
-                    </View>
-                    <Text style={styles.fishName} numberOfLines={1}>{item.species === 'clownfish' ? 'Peixe-Palhaço' : 'Cirurgião'}</Text>
-                    {isSelected && <Text style={styles.selectedBadge}>Selecionado</Text>}
-                  </TouchableOpacity>
-                )
-              })}
-            </View>
           </ScrollView>
         </View>
       </View>
@@ -111,62 +156,105 @@ export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
   )
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: 'transparent' },
   header: {
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.2)',
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center'
+    paddingHorizontal: 18,
+    paddingVertical: 14,
   },
-  title: { fontSize: 20, fontWeight: '900', color: '#fff', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2 },
-  subtitle: { color: '#FFE4E1', fontSize: 13, fontWeight: 'bold' },
-  contentRow: { flex: 1, flexDirection: 'row' },
-  loveBox: {
-    width: '35%',
-    margin: 15,
-    backgroundColor: 'rgba(255,255,255,0.85)',
-    borderRadius: 15,
-    padding: 15,
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  headerIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,105,180,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,105,180,0.3)',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.15,
-    shadowRadius: 5,
-    elevation: 4
   },
-  loveBoxTitle: { fontSize: 15, fontWeight: '900', color: '#333', marginBottom: 15 },
-  heartsContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
-  heartIcon: { fontSize: 28, marginHorizontal: 10 },
-  emptyPreview: { width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.5)', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#ccc', borderStyle: 'dashed' },
-  questionMark: { fontSize: 22, color: '#999', fontWeight: 'bold' },
-  previewBox: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#E0F7FA', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#00BFFF', overflow: 'hidden' },
-  breedBtn: { width: '100%', backgroundColor: '#FF1493', paddingVertical: 12, borderRadius: 10, alignItems: 'center', elevation: 3 },
-  breedText: { color: '#fff', fontSize: 14, fontWeight: '900', textTransform: 'uppercase' },
-  listContainer: { padding: 15 },
-  emptyText: { color: '#fff', fontSize: 14, textAlign: 'center', marginTop: 20, fontWeight: 'bold' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start' },
-  card: {
-    width: CARD_WIDTH,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 12,
-    padding: 10,
-    marginRight: 10,
-    marginBottom: 10,
+  title: { fontSize: 17, fontWeight: '900', color: '#fff', letterSpacing: 0.3 },
+  subtitle: { fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: '700', letterSpacing: 0.8, marginTop: 1 },
+  closeBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2
+    justifyContent: 'center',
   },
-  cardSelected: { borderColor: '#FF1493', backgroundColor: '#FFF0F5' },
-  previewBoxSmall: { width: '100%', height: 50, backgroundColor: '#E0F7FA', borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginBottom: 5, overflow: 'hidden' },
-  fishName: { fontSize: 12, fontWeight: 'bold', color: '#333' },
-  selectedBadge: { marginTop: 2, fontSize: 10, color: '#FF1493', fontWeight: 'bold' }
+  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginHorizontal: 18 },
+  body: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', padding: 14, gap: 12 },
+
+  // Station (left)
+  station: {
+    flexBasis: '38%',
+    flexGrow: 1,
+    minWidth: 260,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    padding: 14,
+    alignItems: 'center',
+    gap: 14,
+    justifyContent: 'center',
+  },
+  slotRow: { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center' },
+  counter: { fontSize: 22, fontWeight: '900', color: '#FF69B4' },
+  breedBtn: { width: '100%', borderRadius: 14, overflow: 'hidden' },
+  breedBtnDisabled: { opacity: 0.5 },
+  breedGrad: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 13,
+    gap: 7,
+  },
+  breedText: { color: '#fff', fontWeight: '900', fontSize: 13, letterSpacing: 0.8 },
+  infoPill: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+  },
+  infoText: { fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: '600' },
+
+  // Grid (right)
+  gridWrap: { flexBasis: '50%', flexGrow: 1, minWidth: 260, gap: 8 },
+  gridTitle: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: 'rgba(255,255,255,0.4)',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  grid: { paddingBottom: 16 },
+  gridInner: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, justifyContent: 'center' },
+  empty: { flex: 1, alignItems: 'center', paddingTop: 30, gap: 8 },
+  emptyEmoji: { fontSize: 36 },
+  emptyText: {
+    color: 'rgba(255,255,255,0.3)',
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
 })
+
+
+
+
+
+
+
+
+
+
+
+
+

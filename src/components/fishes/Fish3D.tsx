@@ -1,11 +1,16 @@
-import React, { useRef, useMemo, useState } from 'react';
-import { useFrame } from '@react-three/fiber';
+
+
+import { useFrame, useThree } from '@react-three/fiber';
+import React, { useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { FishEntity, useGameStore } from '../../store/useGameStore';
 
 interface Fish3DProps {
   fish: FishEntity;
   setSelectedFish: (fish: any) => void;
+  foods: any[];
+  setFoods: any;
+  hungryRefs?: React.MutableRefObject<any>;
 }
 
 // Hyper-glossy material mirroring the reference image
@@ -20,7 +25,8 @@ const GlossyMaterial = ({ color }: { color: string }) => (
   />
 );
 
-export default function Fish3D({ fish, setSelectedFish }: Fish3DProps) {
+export default function Fish3D({ fish, setSelectedFish, foods, setFoods, hungryRefs }: Fish3DProps) {
+  const { camera, size } = useThree();
   const groupRef = useRef<THREE.Group>(null);
   const tailRef = useRef<THREE.Mesh>(null);
   const fin1Ref = useRef<THREE.Mesh>(null);
@@ -45,7 +51,7 @@ export default function Fish3D({ fish, setSelectedFish }: Fish3DProps) {
     return { bodyColor: '#3498DB', stripeColor: '#2980B9', finColor: '#F1C40F' };
   }, [fish.species]);
 
-  const baseScale = fish.stage === 'baby' ? 0.7 : 1.3;
+  const baseScale = fish.stage === 'baby' ? 0.35 : 0.65;
   const speedScale = useRef(Math.random() * 0.4 + 0.6);
 
   useFrame((state, delta) => {
@@ -53,12 +59,57 @@ export default function Fish3D({ fish, setSelectedFish }: Fish3DProps) {
     const time = state.clock.elapsedTime;
 
     const currentSpeed = (delta * 1.5) * (1 + Math.sin(time * 3 * speedScale.current) * 0.3);
+    const currentPos = groupRef.current.position.clone();
+
+    // Food collision check
+    if (fish.hunger < 90 && foods.length > 0) {
+      let nearest = foods[0];
+      let minDist = currentPos.distanceTo(nearest.position);
+      for (let i = 1; i < foods.length; i++) {
+        const d = currentPos.distanceTo(foods[i].position);
+        if (d < minDist) {
+          nearest = foods[i];
+          minDist = d;
+        }
+      }
+
+      if (minDist < 1.5) {
+        // Eat food
+        setFoods((prev: any[]) => prev.filter(f => f.id !== nearest.id));
+        useGameStore.getState().updateFishes(all => 
+          all.map(f => f.id === fish.id ? { 
+            ...f, 
+            hunger: Math.min(100, f.hunger + 40),
+            happiness: Math.min(100, f.happiness + 20)
+          } : f)
+        );
+        setTargetPos(randomTarget());
+      } else {
+        // Swim to food
+        setTargetPos(nearest.position.clone());
+      }
+    }
+
     groupRef.current.position.lerp(targetPos, currentSpeed);
     groupRef.current.position.y += Math.sin(time * 2 + speedScale.current * 10) * 0.003;
 
+    // 2D Projection for hunger icon overlay
+    if (hungryRefs && hungryRefs.current) {
+      if (fish.hunger < 30) {
+        const vec = groupRef.current.position.clone();
+        // Displace the icon slightly above the fish
+        vec.y += 0.6;
+        vec.project(camera);
+        const x = (vec.x * 0.5 + 0.5) * size.width;
+        const y = -(vec.y * 0.5 - 0.5) * size.height;
+        hungryRefs.current[fish.id] = { id: fish.id, x, y, isHungry: true };
+      } else {
+        if (hungryRefs.current[fish.id]) hungryRefs.current[fish.id].isHungry = false;
+      }
+    }
+
     // Strict 2.5D Sideways swimming ("só podem nadas de lado")
     // Face right (0 deg) if target is to the right. Face left (180 deg) if target is to the left.
-    const currentPos = groupRef.current.position.clone();
     const isMovingRight = targetPos.x > currentPos.x;
     const targetYRot = isMovingRight ? 0 : Math.PI;
 
@@ -80,6 +131,92 @@ export default function Fish3D({ fish, setSelectedFish }: Fish3DProps) {
       speedScale.current = Math.random() * 0.4 + 0.6;
     }
   });
+
+  // return (
+  //   <group ref={groupRef} scale={[baseScale, baseScale, baseScale]} onPointerDown={(e) => { e.stopPropagation(); setSelectedFish(fish); }}>
+      
+  //     {/* 1. Main Organic Body (Smoother Capsule Contour) */}
+  //     <mesh castShadow receiveShadow position={[0, 0, 0]} rotation={[0, 0, 1.57]} scale={[1.2, 1.4, 0.9]}>
+  //       <cylinderGeometry args={[0.4, 0.4, 0.3, 32]} />
+  //       <GlossyMaterial color={bodyColor} />
+  //     </mesh>
+  //     {/* Front and back domes for capsule effect */}
+  //     <mesh castShadow receiveShadow position={[0.15, 0, 0]} rotation={[0, 0, 1.57]} scale={[1.2, 1.4, 0.9]}>
+  //       <sphereGeometry args={[0.4, 32, 32, 0, Math.PI * 2, 0, Math.PI / 2]} />
+  //       <GlossyMaterial color={bodyColor} />
+  //     </mesh>
+  //     <mesh castShadow receiveShadow position={[-0.15, 0, 0]} rotation={[0, 0, -1.57]} scale={[1.2, 1.4, 0.9]}>
+  //       <sphereGeometry args={[0.4, 32, 32, 0, Math.PI * 2, 0, Math.PI / 2]} />
+  //       <GlossyMaterial color={bodyColor} />
+  //     </mesh>
+
+  //     {/* 2. Seamless Stripes integrated tightly */}
+  //     <mesh castShadow receiveShadow position={[0.2, 0, 0]} rotation={[0, 1.57, 1.57]} scale={[1.0, 0.9, 0.4]}>
+  //        <torusGeometry args={[0.45, 0.08, 32, 64]} />
+  //        <GlossyMaterial color={stripeColor} />
+  //     </mesh>
+  //     <mesh castShadow receiveShadow position={[-0.2, 0, 0]} rotation={[0, 1.57, 1.57]} scale={[0.85, 0.8, 0.4]}>
+  //        <torusGeometry args={[0.4, 0.08, 32, 64]} />
+  //        <GlossyMaterial color={stripeColor} />
+  //     </mesh>
+
+  //     {/* 3. Huge Anime Glossy Eyes */}
+  //     <group position={[0.45, 0.15, 0.35]} rotation={[0, 0.5, -0.2]}>
+  //       {/* Sclera */}
+  //       <mesh position={[0,0,0]}><sphereGeometry args={[0.22, 32, 32]} /><meshPhysicalMaterial color="#FFFFFF" roughness={0.1} clearcoat={1.0} /></mesh>
+  //       {/* Iris */}
+  //       <mesh position={[0.1, 0, 0.12]}><sphereGeometry args={[0.12, 32, 32]} /><meshPhysicalMaterial color="#00CED1" roughness={0.1} clearcoat={1.0} /></mesh>
+  //       {/* Pupil */}
+  //       <mesh position={[0.16, 0, 0.16]}><sphereGeometry args={[0.08, 32, 32]} /><meshBasicMaterial color="#000000" /></mesh>
+  //       {/* Giant Specular Glint */}
+  //       <mesh position={[0.18, 0.08, 0.18]}><sphereGeometry args={[0.04, 16, 16]} /><meshBasicMaterial color="#FFFFFF" /></mesh>
+  //       <mesh position={[0.22, -0.04, 0.18]}><sphereGeometry args={[0.015, 16, 16]} /><meshBasicMaterial color="#FFFFFF" /></mesh>
+  //     </group>
+      
+  //     <group position={[0.45, 0.15, -0.35]} rotation={[0, -0.5, -0.2]}>
+  //       <mesh position={[0,0,0]}><sphereGeometry args={[0.22, 32, 32]} /><meshPhysicalMaterial color="#FFFFFF" roughness={0.1} clearcoat={1.0} /></mesh>
+  //       <mesh position={[0.1, 0, -0.12]}><sphereGeometry args={[0.12, 32, 32]} /><meshPhysicalMaterial color="#00CED1" roughness={0.1} clearcoat={1.0} /></mesh>
+  //       <mesh position={[0.16, 0, -0.16]}><sphereGeometry args={[0.08, 32, 32]} /><meshBasicMaterial color="#000000" /></mesh>
+  //       <mesh position={[0.18, 0.08, -0.18]}><sphereGeometry args={[0.04, 16, 16]} /><meshBasicMaterial color="#FFFFFF" /></mesh>
+  //       <mesh position={[0.22, -0.04, -0.18]}><sphereGeometry args={[0.015, 16, 16]} /><meshBasicMaterial color="#FFFFFF" /></mesh>
+  //     </group>
+
+  //     {/* 4. Cute V-shaped Smile (Embedded flush with face) */}
+  //     <mesh position={[0.55, -0.15, 0]} rotation={[0.4, 1.57, 0]}>
+  //        <torusGeometry args={[0.06, 0.02, 16, 32, 3.14]} />
+  //        <meshBasicMaterial color="#8B0000" />
+  //     </mesh>
+      
+  //     {/* Pink Rosy Cheeks */}
+  //     <mesh position={[0.45, -0.05, 0.35]}><sphereGeometry args={[0.08, 16, 16]} /><meshBasicMaterial color="#FF69B4" transparent opacity={0.6} /></mesh>
+  //     <mesh position={[0.45, -0.05, -0.35]}><sphereGeometry args={[0.08, 16, 16]} /><meshBasicMaterial color="#FF69B4" transparent opacity={0.6} /></mesh>
+
+  //     {/* 5. Smooth Tail Fin */}
+  //     <mesh castShadow receiveShadow ref={tailRef} position={[-0.65, 0, 0]}>
+  //        <mesh castShadow receiveShadow position={[-0.2, 0, 0]} scale={[0.8, 1.2, 0.2]}>
+  //          <cylinderGeometry args={[0.2, 0.2, 0.2, 16]} />
+  //          <GlossyMaterial color={finColor} />
+  //        </mesh>
+  //     </mesh>
+
+  //     {/* 6. Top Dorsal Fin */}
+  //     <mesh castShadow receiveShadow position={[-0.1, 0.5, 0]} rotation={[0, 0, -0.3]} scale={[1, 0.8, 0.3]}>
+  //        <sphereGeometry args={[0.25, 32, 32]} />
+  //        <GlossyMaterial color={finColor} />
+  //     </mesh>
+
+  //     {/* 7. Wiggling Side Fins */}
+  //     <mesh castShadow receiveShadow ref={fin1Ref} position={[0.1, -0.3, 0.4]} rotation={[0.4, 0.2, -0.8]} scale={[1.2, 0.8, 0.3]}>
+  //        <sphereGeometry args={[0.15, 32, 32]} />
+  //        <GlossyMaterial color={finColor} />
+  //     </mesh>
+  //     <mesh castShadow receiveShadow ref={fin2Ref} position={[0.1, -0.3, -0.4]} rotation={[-0.4, -0.2, -0.8]} scale={[1.2, 0.8, 0.3]}>
+  //        <sphereGeometry args={[0.15, 32, 32]} />
+  //        <GlossyMaterial color={finColor} />
+  //     </mesh>
+
+  //   </group>
+  // );
 
   return (
     <group ref={groupRef} scale={[baseScale, baseScale, baseScale]} onPointerDown={(e) => { e.stopPropagation(); setSelectedFish(fish); }}>

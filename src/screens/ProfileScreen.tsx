@@ -1,122 +1,254 @@
+import { LinearGradient } from 'expo-linear-gradient'
+import { Coins, Fish, LogOut, Skull, User, X } from 'lucide-react-native'
 import React, { useEffect, useState } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native'
-import { User, Coins, Fish, Skull, LogOut, X } from 'lucide-react-native'
-import { useGameStore } from '../store/useGameStore'
+import {
+  Alert,
+  Animated,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native'
 import { supabase } from '../services/supabase'
+import { useGameStore } from '../store/useGameStore'
+import { XPRing, StatCard, AchievementRow } from '../components/screens/ProfileComponents'
 
+// ─── Main ─────────────────────────────────────────────────────────────────────
 export default function ProfileScreen({ onClose }: { onClose?: () => void }) {
   const coins = useGameStore(state => state.coins)
   const fishes = useGameStore(state => state.fishes)
   const deadFishes = useGameStore(state => state.deadFishes)
   const level = useGameStore(state => state.level)
-  const xp = useGameStore(state => state.xp)
-  
-  const [email, setEmail] = useState<string | null>('Carregando...')
+  const xpVal = useGameStore(state => state.xp)
+
+  const [email, setEmail] = useState<string>('Carregando...')
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
-      setEmail(user?.email || 'Mergulhador Misterioso')
+      setEmail(user?.email ?? 'Mergulhador Misterioso')
     })
   }, [])
 
-  const handleLogout = async () => {
+  const xpNeeded = level * 1000
+  const xpPct = Math.min(100, (xpVal / xpNeeded) * 100)
+
+  const handleLogout = () => {
     Alert.alert('Sair', 'Deseja realmente sair da sua conta?', [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Sair', style: 'destructive', onPress: async () => await supabase.auth.signOut() }
+      { text: 'Sair', style: 'destructive', onPress: () => supabase.auth.signOut() },
     ])
   }
 
-  const xpNeeded = level * 1000;
-  const xpPercent = Math.min(100, (xp / xpNeeded) * 100);
-
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <User color="#fff" size={20} style={{ marginRight: 8 }} />
-          <Text style={styles.title}>Meu Perfil</Text>
+    <View style={s.container}>
+      {/* Header */}
+      <View style={s.header}>
+        <View style={s.headerLeft}>
+          <View style={s.headerIcon}>
+            <User color="#00E5FF" size={18} strokeWidth={2} />
+          </View>
+          <View>
+            <Text style={s.title}>Meu Perfil</Text>
+            <Text style={s.subtitle}>Mestre dos Mares</Text>
+          </View>
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Text style={styles.emailText}>{email}</Text>
-          <TouchableOpacity onPress={onClose} style={{ marginLeft: 25, padding: 5, backgroundColor: 'rgba(255,0,0,0.6)', borderRadius: 12 }}>
-            <X color="#fff" size={24} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={s.closeBtn} onPress={onClose}>
+          <X color="rgba(255,255,255,0.6)" size={16} strokeWidth={2.5} />
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.contentRow}>
-        <View style={styles.card}>
-          <View style={styles.levelCircle}><Text style={styles.levelText}>{level}</Text></View>
-          <Text style={styles.xpTitle}>Nível Mestre dos Mares</Text>
-          
-          <View style={styles.xpBarContainer}>
-             <View style={[styles.xpBarFill, { width: `${xpPercent}%` }]} />
+      <View style={s.divider} />
+
+      <View style={s.body}>
+        {/* Hero section */}
+        <View style={s.hero}>
+          <LinearGradient
+            colors={['rgba(0,229,255,0.08)', 'transparent']}
+            style={StyleSheet.absoluteFillObject}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+          />
+
+          <XPRing level={level} pct={xpPct} />
+
+          <View style={s.heroInfo}>
+            {/* Email */}
+            <View style={s.emailRow}>
+              <View style={s.emailDot} />
+              <Text style={s.emailText} numberOfLines={1}>{email}</Text>
+            </View>
+
+            {/* XP bar */}
+            <View style={s.xpSection}>
+              <View style={s.xpLabelRow}>
+                <Text style={s.xpLabel}>Experiência</Text>
+                <Text style={s.xpVal}>{Math.floor(xpVal).toLocaleString()} / {xpNeeded.toLocaleString()} XP</Text>
+              </View>
+              <View style={s.xpTrack}>
+                <Animated.View style={[s.xpFill, { width: `${xpPct}%` }]} />
+                <View style={s.xpGloss} />
+              </View>
+            </View>
           </View>
-          <Text style={styles.xpLabel}>{Math.floor(xp)} / {xpNeeded} XP</Text>
         </View>
 
-        <View style={styles.statsContainer}>
-          <View style={styles.statsGrid}>
-            <View style={styles.statBox}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 3 }}>
-                <Text style={styles.statValue}>{Math.floor(coins)}</Text>
-                <Coins color="#FFD700" size={16} style={{ marginLeft: 4 }} />
-              </View>
-              <Text style={styles.statLabel}>Fortuna</Text>
-            </View>
-            <View style={styles.statBox}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 3 }}>
-                <Text style={styles.statValue}>{fishes.length}</Text>
-                <Fish color="#32CD32" size={16} style={{ marginLeft: 4 }} />
-              </View>
-              <Text style={styles.statLabel}>Vivos</Text>
-            </View>
-            <View style={styles.statBox}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 3 }}>
-                <Text style={styles.statValue}>{deadFishes.length}</Text>
-                <Skull color="#ccc" size={16} style={{ marginLeft: 4 }} />
-              </View>
-              <Text style={styles.statLabel}>Necrotério</Text>
-            </View>
-          </View>
-          
-          <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <LogOut color="#fff" size={16} style={{ marginRight: 6 }} />
-              <Text style={styles.logoutText}>Desconectar</Text>
-            </View>
-          </TouchableOpacity>
+        {/* Stats row */}
+        <View style={s.statsRow}>
+          <StatCard
+            index={0}
+            icon={<Coins color="#FFD700" size={18} strokeWidth={2} />}
+            value={Math.floor(coins).toLocaleString()}
+            label="Fortuna"
+            color="#FFD700"
+          />
+          <StatCard
+            index={1}
+            icon={<Fish color="#00E5A0" size={18} strokeWidth={2} />}
+            value={fishes.length}
+            label="Vivos"
+            color="#00E5A0"
+          />
+          <StatCard
+            index={2}
+            icon={<Skull color="#A855F7" size={18} strokeWidth={2} />}
+            value={deadFishes.length}
+            label="Necrotério"
+            color="#A855F7"
+          />
         </View>
+
+        {/* Achievements */}
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>🏅 Conquistas</Text>
+          <AchievementRow fishes={fishes} deadFishes={deadFishes} />
+        </View>
+
+        {/* Logout */}
+        <TouchableOpacity style={s.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
+          <LinearGradient
+            colors={['rgba(220,20,60,0.25)', 'rgba(139,0,0,0.2)']}
+            style={s.logoutGrad}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <LogOut color="#FF6B6B" size={16} strokeWidth={2.5} />
+            <Text style={s.logoutText}>Desconectar</Text>
+          </LinearGradient>
+        </TouchableOpacity>
       </View>
     </View>
   )
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   container: { flex: 1 },
-  header: { 
-    padding: 15, 
-    borderBottomWidth: 1, 
-    borderBottomColor: 'rgba(255,255,255,0.2)', 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center' 
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingVertical: 14,
   },
-  title: { fontSize: 20, fontWeight: '900', color: '#fff', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2 },
-  emailText: { color: '#ddd', fontSize: 13, fontWeight: 'bold' },
-  contentRow: { flex: 1, flexDirection: 'row', padding: 15 },
-  card: { flex: 1, backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: 15, padding: 20, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.15, shadowRadius: 5, elevation: 4, marginRight: 15 },
-  levelCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#FFD700', justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: '#FFA500', marginBottom: 15, shadowColor: '#FF8C00', shadowOpacity: 0.5, shadowRadius: 5, elevation: 3 },
-  levelText: { fontSize: 32, fontWeight: '900', color: '#8B4513' },
-  xpTitle: { fontSize: 16, fontWeight: '900', color: '#333', marginBottom: 10 },
-  xpBarContainer: { width: '90%', height: 12, backgroundColor: 'rgba(0,0,0,0.1)', borderRadius: 6, overflow: 'hidden', marginBottom: 6 },
-  xpBarFill: { height: '100%', backgroundColor: '#32CD32', borderRadius: 6 },
-  xpLabel: { color: '#666', fontSize: 12, fontWeight: 'bold' },
-  statsContainer: { flex: 1, justifyContent: 'space-between' },
-  statsGrid: { flexDirection: 'row', justifyContent: 'space-between' },
-  statBox: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', marginHorizontal: 6, paddingVertical: 15, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  statValue: { color: '#fff', fontSize: 18, fontWeight: '900', marginBottom: 3 },
-  statLabel: { color: '#ddd', fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
-  logoutBtn: { backgroundColor: '#DC143C', paddingVertical: 12, borderRadius: 10, alignItems: 'center', elevation: 3 },
-  logoutText: { color: '#fff', fontSize: 14, fontWeight: '900', textTransform: 'uppercase' }
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  headerIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0,229,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(0,229,255,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: { fontSize: 17, fontWeight: '900', color: '#fff', letterSpacing: 0.3 },
+  subtitle: { fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: '700', letterSpacing: 0.5, marginTop: 1 },
+  closeBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginHorizontal: 18 },
+
+  body: { flex: 1, padding: 14, gap: 12 },
+
+  // Hero
+  hero: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    padding: 16,
+    gap: 16,
+    overflow: 'hidden',
+  },
+  heroInfo: { flex: 1, gap: 10 },
+  emailRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  emailDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#00E5A0' },
+  emailText: { fontSize: 11, color: 'rgba(255,255,255,0.6)', fontWeight: '700', flex: 1 },
+
+  xpSection: { gap: 5 },
+  xpLabelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  xpLabel: { fontSize: 9, fontWeight: '800', color: 'rgba(255,255,255,0.4)', letterSpacing: 1, textTransform: 'uppercase' },
+  xpVal: { fontSize: 10, fontWeight: '900', color: '#00E5FF' },
+  xpTrack: {
+    height: 8,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderRadius: 4,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  xpFill: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    borderRadius: 4,
+    backgroundColor: '#00E5FF',
+  },
+  xpGloss: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 4,
+  },
+
+  // Stats
+  statsRow: { flexDirection: 'row', gap: 8 },
+
+  // Section
+  section: { gap: 8 },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: 'rgba(255,255,255,0.5)',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+
+  // Logout
+  logoutBtn: { borderRadius: 14, overflow: 'hidden', marginTop: 'auto' as any },
+  logoutGrad: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(220,20,60,0.3)',
+    borderRadius: 14,
+  },
+  logoutText: { color: '#FF6B6B', fontWeight: '900', fontSize: 14, letterSpacing: 0.8, textTransform: 'uppercase' },
 })
+
+
+
+
+

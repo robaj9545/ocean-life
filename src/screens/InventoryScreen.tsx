@@ -1,91 +1,106 @@
-import React from 'react'
-import { View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity } from 'react-native'
 import { Backpack, X } from 'lucide-react-native'
+import React from 'react'
+import {
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native'
 import { useGameStore } from '../store/useGameStore'
-import ClownfishSVG from '../components/fishes/Clownfish'
-import BlueTangSVG from '../components/fishes/BlueTang'
+import { FishCard, SummaryBar } from '../components/screens/InventoryComponents'
 
-const { width } = Dimensions.get('window')
-const CARD_WIDTH = (width * 0.7) / 5 - 16 // 5 columns compactodal (70% screen width)
+// ─── Main ─────────────────────────────────────────────────────────────────────
 
+// ─── Main ─────────────────────────────────────────────────────────────────────
 export default function InventoryScreen({ onClose }: { onClose?: () => void }) {
   const fishes = useGameStore(state => state.fishes)
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Backpack color="#fff" size={20} style={{ marginRight: 8 }} />
-          <Text style={styles.title}>Meus Peixes</Text>
+    <View style={s.container}>
+      {/* Header */}
+      <View style={s.header}>
+        <View style={s.headerLeft}>
+          <View style={s.headerIcon}>
+            <Backpack color="#B29DFF" size={18} strokeWidth={2} />
+          </View>
+          <View>
+            <Text style={s.title}>Mochila</Text>
+            <Text style={s.subtitle}>{fishes.length} peixes no aquário</Text>
+          </View>
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Text style={styles.subtitle}>{fishes.length} Nadando no Aquário</Text>
-          <TouchableOpacity onPress={onClose} style={{ marginLeft: 25, padding: 5, backgroundColor: 'rgba(255,0,0,0.6)', borderRadius: 12 }}>
-            <X color="#fff" size={24} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={s.closeBtn} onPress={onClose}>
+          <X color="rgba(255,255,255,0.6)" size={16} strokeWidth={2.5} />
+        </TouchableOpacity>
       </View>
 
+      <View style={s.divider} />
+
+      {/* Summary */}
+      {fishes.length > 0 && <SummaryBar fishes={fishes} />}
+
+      {/* Grid */}
       {fishes.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>Você ainda não tem peixes. Compre na Loja!</Text>
+        <View style={s.empty}>
+          <Text style={s.emptyEmoji}>🌊</Text>
+          <Text style={s.emptyTitle}>Aquário vazio</Text>
+          <Text style={s.emptyDesc}>Compre seu primeiro peixe na loja!</Text>
         </View>
       ) : (
         <FlatList
           data={fishes}
           keyExtractor={item => item.id.toString()}
-          numColumns={4}
-          contentContainerStyle={styles.listContainer}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <View style={styles.previewBox}>
-                 {item.species === 'bluetang' ? <BlueTangSVG size={60} isBaby={item.stage === 'baby'} /> : <ClownfishSVG size={60} isBaby={item.stage === 'baby'} />}
-              </View>
-              <Text style={styles.fishName} numberOfLines={1}>{item.species === 'clownfish' ? 'Peixe-Palhaço' : 'Cirurgião-Patela'}</Text>
-              <Text style={styles.infoText}>Fome: {Math.floor(item.hunger)}%</Text>
-              <Text style={styles.infoText}>{item.stage === 'baby' ? 'Filhote' : 'Adulto'}</Text>
-              <View style={[styles.statusBadge, { backgroundColor: item.hunger > 50 ? '#32CD32' : '#FF4500' }]}>
-                <Text style={styles.statusText}>{item.hunger > 50 ? 'Satisfeito' : 'Com Fome'}</Text>
-              </View>
-            </View>
-          )}
+          numColumns={2} // Better responsive layout for general phones
+          columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: 10 }}
+          contentContainerStyle={s.list}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item, index }) => <FishCard item={item} index={index} />}
         />
       )}
     </View>
   )
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.2)',
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  title: { fontSize: 20, fontWeight: '900', color: '#fff', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2 },
-  subtitle: { color: '#e0e0e0', fontSize: 13, fontWeight: 'bold' },
-  listContainer: { padding: 15, alignItems: 'center', paddingBottom: 40 },
-  card: {
-    width: CARD_WIDTH,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 12,
-    padding: 10,
-    margin: 8,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 5,
-    elevation: 3
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingVertical: 14,
   },
-  previewBox: { width: '100%', height: 70, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
-  fishName: { fontSize: 13, fontWeight: '900', color: '#333', marginBottom: 4 },
-  infoText: { fontSize: 10, color: '#555', marginBottom: 2, fontWeight: 'bold' },
-  statusBadge: { marginTop: 6, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, width: '100%', alignItems: 'center' },
-  statusText: { color: '#fff', fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
-  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyText: { color: '#fff', fontSize: 16, fontWeight: 'bold' }
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  headerIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: 'rgba(178,157,255,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(178,157,255,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: { fontSize: 17, fontWeight: '900', color: '#fff', letterSpacing: 0.3 },
+  subtitle: { fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: '700', letterSpacing: 0.5, marginTop: 1 },
+  closeBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginHorizontal: 18 },
+  list: { padding: 10, paddingBottom: 24 },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
+  emptyEmoji: { fontSize: 52 },
+  emptyTitle: { fontSize: 18, fontWeight: '900', color: 'rgba(255,255,255,0.7)' },
+  emptyDesc: { fontSize: 13, color: 'rgba(255,255,255,0.35)', fontWeight: '600' },
 })
+
+
+
+
+
+

@@ -33,6 +33,46 @@ export const fishService = {
     return { data, error }
   },
 
+  createFishOnServer: async (fishData: Omit<FishEntity, 'id'>): Promise<{ data: FishEntity | null; error: any }> => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { data: null, error: 'No user' }
+
+    const formattedFish = {
+      profile_id: user.id,
+      type: fishData.type,
+      species: fishData.species,
+      rarity: fishData.rarity,
+      color: fishData.color,
+      size: fishData.size,
+      speed: fishData.speed,
+      hunger: fishData.hunger,
+      happiness: fishData.happiness,
+      age: fishData.age,
+      position_x: Math.round(fishData.position.x),
+      position_y: Math.round(fishData.position.y),
+      direction: fishData.direction,
+      stage: fishData.stage || null,
+      health: fishData.health || null
+    }
+
+    const { data, error } = await supabase
+      .from('fishes')
+      .insert(formattedFish)
+      .select()
+      .single()
+      
+    if (data) {
+      const insertedFish: FishEntity = {
+        ...fishData,
+        id: data.id,
+        position: { x: data.position_x, y: data.position_y },
+      }
+      return { data: insertedFish, error: null }
+    }
+    
+    return { data: null, error }
+  },
+
   loadFishes: async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { data: null, error: 'No user' }

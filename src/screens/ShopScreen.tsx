@@ -1,180 +1,263 @@
-import React, { useState } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Dimensions } from 'react-native'
-import { ShoppingCart, Skull, Store, ArrowUpCircle, Coins, X } from 'lucide-react-native'
-import { useGameStore } from '../store/useGameStore'
-import { createFish } from '../entities/createFish'
-import ClownfishSVG from '../components/fishes/Clownfish'
+import React, { useEffect, useRef, useState } from 'react'
+import {
+  Alert,
+  Animated,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native'
+import { Store, Drumstick, Skull, X, PackageOpen } from 'lucide-react-native'
 import BlueTangSVG from '../components/fishes/BlueTang'
+import ClownfishSVG from '../components/fishes/Clownfish'
+import { createFish } from '../entities/createFish'
+import { fishService } from '../services/fishService'
+import { useGameStore } from '../store/useGameStore'
 
-const { width } = Dimensions.get('window')
+// Módulos UI Importados
+import { ShopCard } from '../components/ui/Cards'
+import { TabBar } from '../components/ui/Buttons'
+import { BalancePill } from '../components/ui/Stats'
+
+type Tab = 'shop' | 'food' | 'cemetery'
 
 export default function ShopScreen({ onClose }: { onClose?: () => void }) {
-  const [activeTab, setActiveTab] = useState<'shop' | 'cemetery'>('shop')
+  const [activeTab, setActiveTab] = useState<Tab>('shop')
   const coins = useGameStore(state => state.coins)
   const deadFishes = useGameStore(state => state.deadFishes)
   const addCoins = useGameStore(state => state.addCoins)
   const addFish = useGameStore(state => state.addFish)
   const reviveFish = useGameStore(state => state.reviveFish)
+  const addFood = useGameStore(state => state.addFood)
 
-  const buyFish = (price: number, species: string, rarity: string) => {
+  const tabOptions = [
+    { id: 'shop', icon: <Store size={15} />, label: 'Loja', accent: '#00E5FF' },
+    { id: 'food', icon: <Drumstick size={15} />, label: 'Ração', accent: '#FFA500' },
+    { id: 'cemetery', icon: <Skull size={15} />, label: 'Necrotério', accent: '#A855F7' },
+  ]
+
+  const buyFood = (price: number, amount: number) => {
     if (coins >= price) {
       addCoins(-price)
-      addFish(createFish({ species, rarity, stage: 'baby' }))
-      Alert.alert('Sucesso!', `Você comprou um ${species}! Ele já está no Aquário como filhote.`)
+      addFood(amount)
+      Alert.alert('✅ Comprado!', `${amount} porções de ração adicionadas!`)
     } else {
-      Alert.alert('Poxa...', 'Você não tem moedas suficientes!')
+      Alert.alert('❌ Saldo insuficiente', 'Você não tem moedas suficientes!')
+    }
+  }
+
+  const buyFish = async (price: number, species: string, rarity: 'common' | 'rare' | 'epic' | 'legendary') => {
+    if (coins >= price) {
+      addCoins(-price)
+      const fishData = createFish({ species, rarity, stage: 'baby' })
+      const { data } = await fishService.createFishOnServer(fishData)
+      if (data) {
+        addFish(data)
+        Alert.alert('🎉 Comprado!', `Seu ${species} filhote já está no aquário!`)
+      } else {
+        addCoins(price)
+        Alert.alert('Erro', 'Não foi possível salvar. Tente novamente.')
+      }
+    } else {
+      Alert.alert('❌ Saldo insuficiente', 'Você não tem moedas suficientes!')
+    }
+  }
+
+  const handleRevive = (ghost: any) => {
+    const cost = ghost.species === 'clownfish' ? 25 : 75
+    if (coins >= cost) {
+      reviveFish(ghost.id, cost)
+      Alert.alert('✨ Milagre!', 'Peixe ressuscitado com sucesso!')
+    } else {
+      Alert.alert('❌ Saldo insuficiente', 'Você não tem moedas suficientes!')
     }
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          {activeTab === 'shop' ? <ShoppingCart color="#fff" size={24} style={{ marginRight: 8 }} /> : <Skull color="#fff" size={24} style={{ marginRight: 8 }} />}
-          <Text style={styles.title}>{activeTab === 'shop' ? 'Loja Submarina' : 'Necrotério'}</Text>
+    <View style={s.container}>
+      {/* Header */}
+      <View style={s.header}>
+        <View style={s.headerLeft}>
+          <View style={s.headerIcon}>
+            <Store color="#00E5FF" size={18} strokeWidth={2} />
+          </View>
+          <View>
+            <Text style={s.title}>
+              {activeTab === 'shop' ? 'Loja de Peixes' : activeTab === 'food' ? 'Mercado de Ração' : 'Necrotério'}
+            </Text>
+            <Text style={s.subtitle}>Sua carteira • <Text style={{ color: '#FFD700' }}>{Math.floor(coins).toLocaleString()} coins</Text></Text>
+          </View>
         </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={[styles.tab, activeTab === 'shop' && styles.activeTab]} onPress={() => setActiveTab('shop')}>
-            <Store color="#fff" size={18} />
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.tab, activeTab === 'cemetery' && styles.activeTabNemetry]} onPress={() => setActiveTab('cemetery')}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Skull color="#fff" size={18} />
-              <Text style={[styles.tabText, { marginLeft: 6 }]}>{deadFishes.length}</Text>
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={onClose} style={{ marginLeft: 25, padding: 5, backgroundColor: 'rgba(255,0,0,0.6)', borderRadius: 12 }}>
-            <X color="#fff" size={24} />
+        <View style={s.headerRight}>
+          <BalancePill coins={coins} />
+          <TouchableOpacity style={s.closeBtn} onPress={onClose}>
+            <X color="rgba(255,255,255,0.6)" size={16} strokeWidth={2.5} />
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll}>
-        {activeTab === 'shop' ? (
-          <View style={styles.grid}>
-            {/* Clownfish Card */}
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                 <Text style={styles.fishName}>Peixe-Palhaço</Text>
-                 <Text style={styles.rarityBadge}>Comum</Text>
-              </View>
-              <View style={styles.previewBox}>
-                 <ClownfishSVG size={80} isBaby={true} />
-              </View>
-              <Text style={styles.desc}>Alegre e resistente. Gera moedas em ritmo moderado.</Text>
-              <TouchableOpacity style={styles.buyBtn} onPress={() => buyFish(50, 'clownfish', 'common')}>
-                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <ShoppingCart color="#fff" size={14} style={{ marginRight: 4 }} />
-                    <Text style={styles.buyText}>50</Text>
-                    <Coins color="#FFD700" size={14} style={{ marginLeft: 4 }} />
-                 </View>
-              </TouchableOpacity>
-            </View>
+      <View style={s.divider} />
 
-            {/* Blue Tang Card */}
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                 <Text style={styles.fishName}>Cirurgião-Patela</Text>
-                 <Text style={[styles.rarityBadge, { backgroundColor: '#9370DB' }]}>Raro</Text>
-              </View>
-              <View style={styles.previewBox}>
-                 <BlueTangSVG size={90} isBaby={true} />
-              </View>
-              <Text style={styles.desc}>Esquecido mas cresce rápido e gera mais moedas!</Text>
-              <TouchableOpacity style={[styles.buyBtn, { backgroundColor: '#8A2BE2' }]} onPress={() => buyFish(150, 'bluetang', 'rare')}>
-                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <ShoppingCart color="#fff" size={14} style={{ marginRight: 4 }} />
-                    <Text style={styles.buyText}>150</Text>
-                    <Coins color="#FFD700" size={14} style={{ marginLeft: 4 }} />
-                 </View>
-              </TouchableOpacity>
-            </View>
-          </View>
-        ) : (
-          <View style={styles.grid}>
-            {deadFishes.length > 0 ? deadFishes.map((ghost) => {
-              const reviveCost = ghost.species === 'clownfish' ? 25 : 75;
-              const daysLeft = ghost.deathTime ? Math.max(0, Math.ceil((30 * 24 * 60 * 60 * 1000 - (Date.now() - ghost.deathTime)) / (1000 * 60 * 60 * 24))) : 30;
+      {/* Tabs */}
+      <TabBar tabs={tabOptions} active={activeTab} setActive={setActiveTab} deadCount={deadFishes.length} />
 
-              return (
-                <View key={ghost.id} style={[styles.card, { backgroundColor: 'rgba(255,255,255,0.4)', borderWidth: 1, borderColor: '#ccc' }]}>
-                  <View style={styles.cardHeader}>
-                     <Text style={[styles.fishName, { textDecorationLine: 'line-through', color: '#555' }]}>{ghost.species}</Text>
-                     <Text style={[styles.rarityBadge, { backgroundColor: '#333' }]}>Morto</Text>
-                  </View>
-                  <View style={[styles.previewBox, { backgroundColor: 'transparent', opacity: 0.5 }]}>
-                     {ghost.species === 'bluetang' ? <BlueTangSVG size={80} isBaby={ghost.stage === 'baby'} /> : <ClownfishSVG size={80} isBaby={ghost.stage === 'baby'} />}
-                  </View>
-                  <Text style={styles.desc}>Expirará em {daysLeft} dias.</Text>
-                  <TouchableOpacity style={[styles.buyBtn, { backgroundColor: '#8B008B' }]} onPress={() => {
-                     if (coins >= reviveCost) {
-                       reviveFish(ghost.id, reviveCost);
-                       Alert.alert('Milagre!', 'Peixe ressuscitado com sucesso!');
-                     } else {
-                       Alert.alert('Erro', 'Moedas insuficientes!');
-                     }
-                  }}>
-                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <ArrowUpCircle color="#fff" size={14} style={{ marginRight: 4 }} />
-                        <Text style={styles.buyText}>{reviveCost}</Text>
-                        <Coins color="#FFD700" size={14} style={{ marginLeft: 4 }} />
-                     </View>
-                  </TouchableOpacity>
-                </View>
-              );
-            }) : (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>Nenhum peixe morreu de fome... ainda.</Text>
+      {/* Content */}
+      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+        <View style={s.grid}>
+
+          {activeTab === 'shop' && (
+            <>
+              <ShopCard
+                index={0}
+                title="Peixe-Palhaço"
+                description="Alegre e resistente. Gera moedas em ritmo moderado."
+                rarity="COMUM"
+                rarityColor="#00E5A0"
+                accentColor="#FF7043"
+                price={50}
+                preview={<ClownfishSVG size={72} />}
+                onBuy={() => buyFish(50, 'clownfish', 'common')}
+                disabled={coins < 50}
+              />
+              <ShopCard
+                index={1}
+                title="Cirurgião-Patela"
+                description="Cresce rápido e gera mais moedas. Um investimento raro!"
+                rarity="RARO"
+                rarityColor="#A855F7"
+                accentColor="#29B6F6"
+                price={150}
+                preview={<BlueTangSVG size={80} />}
+                onBuy={() => buyFish(150, 'bluetang', 'rare')}
+                disabled={coins < 150}
+              />
+            </>
+          )}
+
+          {activeTab === 'food' && (
+            <>
+              <ShopCard
+                index={0}
+                title="Pote de Ração"
+                description="10 porções. Suficiente para realimentar crias."
+                rarity="+10 FOOD"
+                rarityColor="#FFA500"
+                accentColor="#FF8C00"
+                price={30}
+                preview={<Drumstick color="#FF8C00" size={52} strokeWidth={1.5} />}
+                onBuy={() => buyFood(30, 10)}
+                disabled={coins < 30}
+              />
+              <ShopCard
+                index={1}
+                title="Saco Premium"
+                description="50 porções. Para criadores experientes que não param!"
+                rarity="+50 FOOD"
+                rarityColor="#FF4500"
+                accentColor="#FF4500"
+                price={120}
+                preview={<PackageOpen color="#FF4500" size={52} strokeWidth={1.5} />}
+                onBuy={() => buyFood(120, 50)}
+                disabled={coins < 120}
+              />
+              <ShopCard
+                index={2}
+                title="Mega Estoque"
+                description="200 porções. Nunca mais deixe seus peixes passarem fome."
+                rarity="+200 FOOD"
+                rarityColor="#FF1493"
+                accentColor="#FF1493"
+                price={400}
+                preview={<PackageOpen color="#FF1493" size={52} strokeWidth={1.5} />}
+                onBuy={() => buyFood(400, 200)}
+                disabled={coins < 400}
+              />
+            </>
+          )}
+
+          {activeTab === 'cemetery' && (
+            deadFishes.length === 0 ? (
+              <View style={s.empty}>
+                <Text style={s.emptyEmoji}>🕊️</Text>
+                <Text style={s.emptyTitle}>Todos vivos!</Text>
+                <Text style={s.emptyDesc}>Nenhum peixe morreu de fome... ainda.</Text>
               </View>
-            )}
-          </View>
-        )}
+            ) : (
+              deadFishes.map((ghost, i) => {
+                const reviveCost = ghost.species === 'clownfish' ? 25 : 75
+                const daysLeft = ghost.deathTime
+                  ? Math.max(0, Math.ceil((30 * 24 * 60 * 60 * 1000 - (Date.now() - ghost.deathTime)) / (1000 * 60 * 60 * 24)))
+                  : 30
+
+                return (
+                  <ShopCard
+                    key={ghost.id}
+                    index={i}
+                    title={ghost.species === 'clownfish' ? 'Peixe-Palhaço' : 'Cirurgião-Patela'}
+                    description="Pode ser ressuscitado com uma dose de magia."
+                    rarity="MORTO"
+                    rarityColor="#A855F7"
+                    accentColor="#7C3AED"
+                    price={reviveCost}
+                    dead
+                    daysLeft={daysLeft}
+                    preview={
+                      ghost.species === 'bluetang'
+                        ? <BlueTangSVG size={72} />
+                        : <ClownfishSVG size={72} />
+                    }
+                    onRevive={() => handleRevive(ghost)}
+                  />
+                )
+              })
+            )
+          )}
+        </View>
       </ScrollView>
     </View>
   )
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    padding: 20,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.2)'
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingVertical: 14,
   },
-  headerRight: {
-    flexDirection: 'row'
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  headerIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0,229,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(0,229,255,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  tab: { paddingHorizontal: 15, paddingVertical: 6, borderRadius: 15, marginLeft: 10, backgroundColor: 'rgba(0,0,0,0.3)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
-  activeTab: { backgroundColor: '#1E90FF', borderColor: '#4da6ff' },
-  activeTabNemetry: { backgroundColor: '#8B0000', borderColor: '#FF0000' },
-  tabText: { color: '#fff', fontWeight: 'bold', fontSize: 12, textTransform: 'uppercase' },
-  title: { fontSize: 20, fontWeight: '900', color: '#fff', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2 },
-  scroll: { padding: 20 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
-  card: {
-    width: (width * 0.7) / 4 - 20, // 4 columns compact
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+  title: { fontSize: 17, fontWeight: '900', color: '#fff', letterSpacing: 0.3 },
+  subtitle: { fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: '700', marginTop: 1 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  closeBtn: {
+    width: 30,
+    height: 30,
     borderRadius: 15,
-    padding: 10,
-    margin: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 5,
-    elevation: 4,
-    justifyContent: 'space-between'
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  fishName: { fontSize: 13, fontWeight: '900', color: '#333' },
-  rarityBadge: { backgroundColor: '#32CD32', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, color: '#fff', fontWeight: 'bold', fontSize: 9 },
-  previewBox: { height: 80, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
-  desc: { color: '#555', fontSize: 11, marginBottom: 10, textAlign: 'center', height: 35, lineHeight: 14 },
-  buyBtn: { backgroundColor: '#1E90FF', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, alignItems: 'center', elevation: 2 },
-  buyText: { color: '#fff', fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
-  emptyState: { alignItems: 'center', padding: 40 },
-  emptyText: { color: '#fff', fontSize: 18, fontWeight: 'bold' }
+  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginHorizontal: 18 },
+  scroll: { paddingVertical: 10, paddingHorizontal: 8, paddingBottom: 30 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
+  empty: { width: '100%', alignItems: 'center', paddingVertical: 40, gap: 10 },
+  emptyEmoji: { fontSize: 48 },
+  emptyTitle: { fontSize: 18, fontWeight: '900', color: 'rgba(255,255,255,0.7)' },
+  emptyDesc: { fontSize: 13, color: 'rgba(255,255,255,0.35)', fontWeight: '600' },
 })
+
 

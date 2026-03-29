@@ -82,11 +82,11 @@ const GlossyCoralCluster = ({ position, scale = [1,1,1], mirror = false }: any) 
 
       {/* Pink Anemone Fingers */}
       <mesh position={[1.2, 0.8, 0.5]} rotation={[0, 0, -0.5]}>
-         <capsuleGeometry args={[0.2, 1.5, 16, 16]} />
+         <cylinderGeometry args={[0.2, 0.2, 1.5, 16]} />
          <GlossyMaterial color="#FF69B4" />
       </mesh>
       <mesh position={[1.5, 0.5, 0.2]} rotation={[0.2, 0, -0.8]}>
-         <capsuleGeometry args={[0.15, 1.2, 16, 16]} />
+         <cylinderGeometry args={[0.15, 0.15, 1.2, 16]} />
          <GlossyMaterial color="#FFB6C1" />
       </mesh>
     </group>
@@ -115,11 +115,11 @@ const BluePolishedRocks = ({ position }: any) => {
        
        {/* Tiny green shoots */}
        <mesh position={[-2.2, -0.2, 0]} rotation={[0, 0, -0.3]}>
-          <capsuleGeometry args={[0.1, 0.6, 16, 16]} />
+          <cylinderGeometry args={[0.1, 0.1, 0.6, 16]} />
           <GlossyMaterial color="#7CFC00" />
        </mesh>
        <mesh position={[1.8, -0.5, 0]} rotation={[0, 0, 0.4]}>
-          <capsuleGeometry args={[0.1, 0.5, 16, 16]} />
+          <cylinderGeometry args={[0.1, 0.1, 0.5, 16]} />
           <GlossyMaterial color="#7CFC00" />
        </mesh>
     </group>

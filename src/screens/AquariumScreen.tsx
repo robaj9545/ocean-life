@@ -1,387 +1,216 @@
-import React, { useRef, useMemo, useEffect, useState } from 'react'
-import { TouchableWithoutFeedback, TouchableOpacity, View, Text, StyleSheet, Modal, Dimensions, Image } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
-import { GameEngine } from 'react-native-game-engine'
-import { Coins, ShoppingCart, Backpack, Heart, X, Plus } from 'lucide-react-native'
+import { Backpack, ChevronUp, Coins, Drumstick, Heart, Plus, ShoppingCart, X } from 'lucide-react-native'
+import React, { useEffect, useRef, useState } from 'react'
+import {
+  Animated,
+  Dimensions, // can keep it for some fallbacks
+  useWindowDimensions,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native'
 import AquariumScene3D from '../components/scene/AquariumScene3D'
+import { useGameLoop } from '../hooks/useGameLoop'
 import { useGameStore } from '../store/useGameStore'
-import { CoinSystem } from '../systems/CoinSystem'
-import { CollisionSystem } from '../systems/CollisionSystem'
-import { GrowthSystem } from '../systems/GrowthSystem'
-import { HungerSystem } from '../systems/HungerSystem'
-import { MovementSystem } from '../systems/MovementSystem'
-import { SyncSystem } from '../systems/SyncSystem'
-import { BreedingSystem } from '../systems/BreedingSystem'
-import Fish from '../components/Fish'
-import Food from '../components/Food'
-import Coin from '../components/Coin'
-import Egg from '../components/Egg'
 
-// Import Modals (previously screens)
-import ShopScreen from './ShopScreen'
-import InventoryScreen from './InventoryScreen'
 import BreedingScreen from './BreedingScreen'
+import InventoryScreen from './InventoryScreen'
 import ProfileScreen from './ProfileScreen'
+import ShopScreen from './ShopScreen'
+
+// Modulos UI Importados
+import { StatBar, CurrencyChip, LevelBadge } from '../components/ui/Stats'
+import { NavButton } from '../components/ui/Buttons'
+import { FishPanel, HungryBubble } from '../components/ui/Overlays'
 
 const { width, height } = Dimensions.get('window')
 
 export default function AquariumScreen() {
-  const engine = useRef<any>(null)
-  
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions()
   const fishes = useGameStore(state => state.fishes)
   const coins = useGameStore(state => state.coins)
   const level = useGameStore(state => state.level)
   const xp = useGameStore(state => state.xp)
   const addCoins = useGameStore(state => state.addCoins)
-  const [engineReady, setEngineReady] = useState(false)
+  const consumeFood = useGameStore(state => state.consumeFood)
+  const foodAmount = useGameStore(state => state.foodAmount)
   const [selectedFish, setSelectedFish] = useState<any>(null)
-  
-  // Navigation State
-  const [activeModal, setActiveModal] = useState<'Shop' | 'Inventory' | 'Breeding' | 'Profile' | null>(null)
 
-  // Initialize entities once for the game engine from persistent store
-  const initialEntities = useMemo(() => {
-    const e: any = {}
-    fishes.forEach(fish => {
-      e[fish.id] = { ...fish, renderer: <Fish /> }
-    })
-    return e
-  }, [])
+  // Hungry tracking
+  const hungryRefs = useRef<any>({})
+  const [hungrySpots, setHungrySpots] = useState<any[]>([])
 
   useEffect(() => {
-    setEngineReady(true)
+    const iv = setInterval(() => {
+      const spots: any[] = []
+      for (const key in hungryRefs.current) {
+        if (hungryRefs.current[key]?.isHungry) {
+          spots.push({ id: key, ...hungryRefs.current[key] })
+        }
+      }
+      setHungrySpots(spots)
+    }, 16)
+    return () => clearInterval(iv)
   }, [])
 
+  const [activeModal, setActiveModal] = useState<'Shop' | 'Inventory' | 'Breeding' | 'Profile' | null>(null)
+
+  useGameLoop()
+
+  const handleSellFish = () => {
+    if (!selectedFish) return
+    const sellPrice = selectedFish.species === 'clownfish' ? 100 : 250
+    addCoins(sellPrice)
+    useGameStore.getState().removeFish(selectedFish.id)
+    setSelectedFish(null)
+  }
+
   return (
-    <View style={{ flex: 1 }}>
-      {/* 2D VIBRANT TROPICAL OCEAN BACKGROUND */}
-      <LinearGradient 
-        colors={['#4facfe', '#00f2fe', '#0652DD']} 
-        style={StyleSheet.absoluteFillObject} 
+    <View style={{ flex: 1, backgroundColor: '#020D1F' }}>
+      {/* Ocean gradient background */}
+      <LinearGradient
+        colors={['#0A2A6E', '#0D4FA0', '#0A8AD0', '#05C4E8']}
+        style={StyleSheet.absoluteFillObject}
+        start={{ x: 0.2, y: 0 }}
+        end={{ x: 0.8, y: 1 }}
       />
 
-      {/* 2.5D CANVAS LAYER */}
+      {/* Subtle top vignette */}
+      <LinearGradient
+        colors={['rgba(0,0,0,0.55)', 'transparent']}
+        style={[StyleSheet.absoluteFillObject, { height: height * 0.28 }]}
+      />
+
+      {/* Bottom vignette */}
+      <LinearGradient
+        colors={['transparent', 'rgba(0,5,20,0.7)']}
+        style={[StyleSheet.absoluteFillObject, { top: height * 0.72 }]}
+      />
+
+      {/* 3D scene */}
       <View style={StyleSheet.absoluteFillObject}>
-        <AquariumScene3D setSelectedFish={setSelectedFish} />
+        <AquariumScene3D setSelectedFish={setSelectedFish} hungryRefs={hungryRefs} />
       </View>
 
-      {/* TOP HUD */}
+      {/* Hungry overlays */}
+      {hungrySpots.map(spot => (
+        <HungryBubble
+          key={`hungry_${spot.id}`}
+          spot={spot}
+          onFeed={() => {
+            if (consumeFood(1)) {
+              useGameStore.getState().updateFishes(all =>
+                all.map(f =>
+                  f.id === spot.id
+                    ? { ...f, hunger: Math.min(100, f.hunger + 50), happiness: Math.min(100, f.happiness + 20) }
+                    : f,
+                ),
+              )
+              hungryRefs.current[spot.id].isHungry = false
+            }
+          }}
+        />
+      ))}
+
+      {/* ── TOP HUD ── */}
       <View style={styles.topHud}>
-        {/* LEFTSIDE: COINS */}
-        <View style={styles.glassBox}>
-          <Coins color="#FFD700" size={18} style={{ marginRight: 6 }} />
-          <Text style={styles.currencyText}>{Math.floor(coins)}</Text>
-          <TouchableOpacity style={styles.addButton} onPress={() => setActiveModal('Shop')}>
-            <Plus color="#fff" size={16} strokeWidth={3} />
-          </TouchableOpacity>
-        </View>
-
-        {/* CENTER: NAV MENUS */}
-        <View style={styles.topNavCenter}>
-          <TouchableOpacity style={styles.navButton} onPress={() => setActiveModal('Shop')}>
-            <ShoppingCart color="#fff" size={20} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.navButton} onPress={() => setActiveModal('Inventory')}>
-            <Backpack color="#fff" size={20} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.navButton} onPress={() => setActiveModal('Breeding')}>
-            <Heart color="#fff" size={20} />
-          </TouchableOpacity>
-        </View>
-
-        {/* RIGHTSIDE: PROFILE */}
-        <TouchableOpacity style={styles.glassBox} onPress={() => setActiveModal('Profile')}>
-          <View style={styles.levelCircle}><Text style={styles.levelText}>{level}</Text></View>
-          <View style={styles.xpInfo}>
-             <Text style={styles.xpLabel}>NÍVEL {level}</Text>
-             <View style={styles.xpBarContainer}>
-               <View style={[styles.xpBarFill, { width: `${Math.min(100, (xp / (level * 1000)) * 100)}%` }]} />
-             </View>
-          </View>
-        </TouchableOpacity>
-      </View>
-
-      {/* INVISIBLE GAME ENGINE (For background logic like Hunger and Supabase syncing) */}
-      <View style={{ position: 'absolute', width: 0, height: 0, opacity: 0 }} pointerEvents="none">
-        {engineReady && (
-          <GameEngine
-            ref={engine}
-            systems={[HungerSystem, GrowthSystem, SyncSystem, BreedingSystem]}
-            entities={initialEntities}
+        {/* Left: coins + food */}
+        <View style={{ gap: 8 }}>
+          <CurrencyChip
+            icon={<Coins color="#FFD700" size={15} strokeWidth={2.5} />}
+            value={coins}
+            color="#FFD700"
+            onAdd={() => setActiveModal('Shop')}
           />
-        )}
+          <CurrencyChip
+            icon={<Drumstick color="#FF8C00" size={15} strokeWidth={2.5} />}
+            value={foodAmount}
+            color="#FF8C00"
+            onAdd={() => setActiveModal('Shop')}
+          />
+        </View>
+
+        {/* Right: level badge */}
+        <LevelBadge level={level} xp={xp} onPress={() => setActiveModal('Profile')} />
       </View>
 
+      {/* ── SIDE NAV (right rail) ── */}
+      <View style={styles.sideNav}>
+        <NavButton
+          icon={<ShoppingCart color="#00E5FF" size={18} strokeWidth={2} />}
+          label="Loja"
+          onPress={() => setActiveModal('Shop')}
+          accent="#00E5FF"
+        />
+        <NavButton
+          icon={<Backpack color="#B29DFF" size={18} strokeWidth={2} />}
+          label="Mochila"
+          onPress={() => setActiveModal('Inventory')}
+          accent="#B29DFF"
+        />
+        <NavButton
+          icon={<Heart color="#FF6B9D" size={18} strokeWidth={2} />}
+          label="Criadouro"
+          onPress={() => setActiveModal('Breeding')}
+          accent="#FF6B9D"
+        />
+        {/* <NavButton
+          icon={<Zap color="#FFD700" size={18} strokeWidth={2} />}
+          label="Batalha"
+          onPress={() => {}}
+          accent="#FFD700"
+        /> */}
+      </View>
+
+      {/* ── FISH DETAIL PANEL ── */}
       {selectedFish && (
-        <View style={styles.glassPanel}>
-          <Text style={styles.panelTitle}>{selectedFish.species.toUpperCase()}</Text>
-          <Text style={styles.panelSubtitle}>{selectedFish.stage === 'baby' ? 'Filhote' : 'Adulto'} ♂️/♀️</Text>
-          
-          {/* Health Bar */}
-          <View style={styles.barContainer}>
-            <Text style={styles.barLabel}>Saúde</Text>
-            <View style={styles.barTrack}>
-              <View style={[styles.barFill, { backgroundColor: '#ff4444', width: `${Math.floor(selectedFish.health || 100)}%` }]} />
-            </View>
-          </View>
+        <FishPanel
+          fish={selectedFish}
+          onClose={() => setSelectedFish(null)}
+          onSell={handleSellFish}
+        />
+      )}
 
-          {/* Hunger Bar */}
-          <View style={styles.barContainer}>
-            <Text style={styles.barLabel}>Fome</Text>
-            <View style={styles.barTrack}>
-              <View style={[styles.barFill, { backgroundColor: '#ffb347', width: `${Math.floor(selectedFish.hunger)}%` }]} />
-            </View>
-          </View>
-
-          {/* Happiness Bar */}
-          <View style={styles.barContainer}>
-            <Text style={styles.barLabel}>Alegria</Text>
-            <View style={styles.barTrack}>
-              <View style={[styles.barFill, { backgroundColor: '#ffdf00', width: `${Math.floor(selectedFish.happiness)}%` }]} />
-            </View>
-          </View>
-
-          {selectedFish.stage === 'adult' && (
-             <TouchableOpacity style={styles.premiumSellButton} onPress={() => {
-                const sellPrice = selectedFish.species === 'clownfish' ? 100 : 250;
-                addCoins(sellPrice);
-                useGameStore.getState().removeFish(selectedFish.id);
-                if (engine.current) {
-                  engine.current.dispatch({ type: 'SELL_FISH', payload: { id: selectedFish.id } })
-                }
-                setSelectedFish(null);
-             }}>
-               <Text style={styles.sellButtonText}>VENDER 💰 {selectedFish.species === 'clownfish' ? 100 : 250}</Text>
-             </TouchableOpacity>
-          )}
+      {/* ── FISH COUNT INDICATOR ── */}
+      {!selectedFish && (
+        <View style={styles.fishCount}>
+          <Text style={styles.fishCountText}>🐠 {fishes.length} peixes</Text>
         </View>
       )}
 
-      {/* MODAL OVERLAYS */}
-      {activeModal && (
-        <Modal transparent animationType="fade" visible={!!activeModal}>
-          <View style={styles.modalBackdrop}>
-             <View style={styles.modalContent}>
-               {activeModal === 'Shop' && <ShopScreen onClose={() => setActiveModal(null)} />}
-               {activeModal === 'Inventory' && <InventoryScreen onClose={() => setActiveModal(null)} />}
-               {activeModal === 'Breeding' && <BreedingScreen onClose={() => setActiveModal(null)} />}
-               {activeModal === 'Profile' && <ProfileScreen onClose={() => setActiveModal(null)} />}
-             </View>
-          </View>
-        </Modal>
-      )}
+      {/* ── MODALS ── */}
 
+      {activeModal && (
+         <Modal transparent animationType="fade" visible={!!activeModal}>
+           <View style={styles.modalBackdrop}>
+              <View style={[styles.modalContent, { width: '95%', maxWidth: 800, maxHeight: '90%', flex: 1, marginVertical: '5%' }]}>
+                {activeModal === 'Shop' && <ShopScreen onClose={() => setActiveModal(null)} />}
+                {activeModal === 'Inventory' && <InventoryScreen onClose={() => setActiveModal(null)} />}
+                {activeModal === 'Breeding' && <BreedingScreen onClose={() => setActiveModal(null)} />}
+                {activeModal === 'Profile' && <ProfileScreen onClose={() => setActiveModal(null)} />}
+              </View>
+           </View>
+         </Modal>
+       )}
+      
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  sandFloor: {
-    position: 'absolute',
-    bottom: 0,
-    width: '100%',
-    height: 100,
-    backgroundColor: '#F4A460', // SandyBrown
-    borderTopLeftRadius: 50,
-    borderTopRightRadius: 70,
-  },
-  decor: {
-    position: 'absolute',
-    opacity: 0.9,
-  },
   topHud: {
     position: 'absolute',
-    top: 20,
-    left: 20,
-    right: 20,
+    top: Platform.OS === 'ios' ? 54 : 36,
+    left: 14,
+    right: 14,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    minWidth: 100,
-    zIndex: 10
-  },
-  sunRay: {
-    position: 'absolute',
-    top: -100,
-    width: 120,
-    height: '150%',
-    backgroundColor: '#fff',
-    opacity: 0.08,
-  },
-  glassBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 3
-  },
-  gemIcon: {
-    fontSize: 16,
-    marginRight: 4
-  },
-  currencyText: {
-    color: '#FFD700',
-    fontSize: 16,
-    fontWeight: '900',
-    marginRight: 8,
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: {width: 1, height: 1},
-    textShadowRadius: 1
-  },
-  addButton: {
-    backgroundColor: '#32CD32',
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#fff'
-  },
-  addText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-    lineHeight: 18
-  },
-  levelCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#FFD700',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FFA500',
-    marginRight: 8
-  },
-  levelText: {
-    color: '#8B4513',
-    fontWeight: '900',
-    fontSize: 14
-  },
-  xpInfo: {
-    justifyContent: 'center'
-  },
-  xpLabel: {
-    color: '#fff',
-    fontSize: 9,
-    fontWeight: 'bold',
-    marginBottom: 2,
-    letterSpacing: 0.5
-  },
-  xpBarContainer: {
-    width: 80,
-    height: 6,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 3,
-    overflow: 'hidden'
-  },
-  xpBarFill: {
-    height: '100%',
-    backgroundColor: '#32CD32',
-    borderRadius: 4
-  },
-  topNavCenter: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginHorizontal: 10
-  },
-  navButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 15,
-    marginHorizontal: 5,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)'
-  },
-  ambientBubble: {
-    position: 'absolute',
-    borderRadius: 100,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  glassPanel: {
-    position: 'absolute',
-    bottom: 120,
-    left: 20,
-    right: 20,
-    backgroundColor: 'rgba(255,255,255,0.85)',
-    padding: 20,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.4)',
+    alignItems: 'flex-start',
     zIndex: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 8
-  },
-  panelTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#333',
-    marginBottom: 2
-  },
-  panelSubtitle: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: 'bold',
-    marginBottom: 15,
-  },
-  barContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8
-  },
-  barLabel: {
-    width: 60,
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#555'
-  },
-  barTrack: {
-    flex: 1,
-    height: 12,
-    backgroundColor: '#ddd',
-    borderRadius: 6,
-    overflow: 'hidden'
-  },
-  barFill: {
-    height: '100%',
-    borderRadius: 6
-  },
-  premiumSellButton: {
-    marginTop: 15,
-    padding: 12,
-    backgroundColor: '#32CD32',
-    borderRadius: 8,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3
-  },
-  sellButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-    letterSpacing: 1
   },
   modalBackdrop: {
     flex: 1,
@@ -389,38 +218,77 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
-  closeModalButton: {
-    position: 'absolute',
-    top: 25,
-    right: 30,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,0,0,0.8)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#fff',
-    zIndex: 30,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 3
-  },
-  closeModalText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 12,
-    textTransform: 'uppercase'
-  },
   modalContent: {
-    width: '70%',
-    height: '75%',
     backgroundColor: 'rgba(10, 30, 60, 0.9)',
     borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
     overflow: 'hidden'
-  }
+  },
+  sideNav: {
+    position: 'absolute',
+    right: 14,
+    top: height * 0.3,
+    alignItems: 'center',
+    gap: 10,
+    zIndex: 10,
+  },
+  fishCount: {
+    position: 'absolute',
+    bottom: 28,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    zIndex: 5,
+  },
+  fishCountText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+
+  
+  closePill: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignSelf: 'center',
+    marginBottom: 8,
+  },
+  closeX: {
+    position: 'absolute',
+    top: 14,
+    right: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 30,
+  },
 })
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
