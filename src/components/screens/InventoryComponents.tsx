@@ -9,7 +9,7 @@ import {
 } from 'react-native'
 import BlueTangSVG from '../../components/fishes/BlueTang'
 import ClownfishSVG from '../../components/fishes/Clownfish'
-import { MiniBar } from '../../components/ui/Stats'
+import { MiniBar } from '../ui/Stats'
 
 // ─── FishCard ────────────────────────────────────────────────────────────────
 export function FishCard({ item, index }: { item: any; index: number }) {
