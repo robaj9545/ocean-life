@@ -11,6 +11,23 @@ const Stroke = ({ thickness = 0.05, color = "#1a1a1a", angle }: { thickness?: nu
   <Outlines thickness={thickness} color={color} angle={angle} />
 );
 
+// Mathematical Physical Ground Collision Engine
+export const getSandHeight = (x: number, z: number) => {
+  const s1 = { cx: -6, cy: 0.5, cz: -2, r: 4, sy: 0.35 };
+  const s2 = { cx: 0, cy: 0.2, cz: -3, r: 6, sy: 0.25 };
+  const s3 = { cx: 6, cy: 0.7, cz: -2, r: 4, sy: 0.35 };
+  
+  let maxY = 0.5; // Base platform top
+  [s1, s2, s3].forEach(s => {
+    const d2 = (x - s.cx)**2 + (z - s.cz)**2;
+    if (d2 < s.r**2) {
+       const h = s.cy + s.sy * Math.sqrt(s.r**2 - d2);
+       if (h > maxY) maxY = h;
+    }
+  });
+  return -6.5 + maxY;
+};
+
 // Base Material with optional texture map
 const EnvMaterial = ({ color, roughness = 0.5, metalness = 0.1, flatShading = false, map, ...props }: any) => (
   <meshStandardMaterial 
@@ -49,7 +66,7 @@ const WavySandFloor = ({ map }: any) => {
   const sandRef = useRef<THREE.Group>(null);
   useFrame((state) => {
     if (sandRef.current) {
-      sandRef.current.position.y = -6.5 + Math.sin(state.clock.elapsedTime * 0.5) * 0.05;
+      sandRef.current.position.y = -6.5; // Fixed base to allow deterministic collision physics
     }
   });
 
@@ -62,18 +79,18 @@ const WavySandFloor = ({ map }: any) => {
         <Stroke thickness={0.03} color="#9c6114" />
       </mesh>
       
-      {/* Sculpted Sand Dunes (overlapping squeezed spheres) */}
-      <mesh position={[-6, 0.5, -2]} scale={[1, 0.4, 1]}>
+      {/* Sculpted Sand Dunes - Slightly increased Y-Scale up to 0.35 */}
+      <mesh position={[-6, 0.5, -2]} scale={[1, 0.35, 1]}>
         <sphereGeometry args={[4, 32, 32]} />
         <EnvMaterial color="#FFC300" roughness={0.7} map={map} />
         <Stroke thickness={0.06} color="#b38400" />
       </mesh>
-      <mesh position={[0, 0.2, -3]} scale={[1, 0.3, 1]}>
+      <mesh position={[0, 0.2, -3]} scale={[1, 0.25, 1]}>
         <sphereGeometry args={[6, 32, 32]} />
         <EnvMaterial color="#FFC300" roughness={0.7} map={map} />
         <Stroke thickness={0.06} color="#b38400" />
       </mesh>
-      <mesh position={[6, 0.7, -2]} scale={[1, 0.5, 1]}>
+      <mesh position={[6, 0.7, -2]} scale={[1, 0.35, 1]}>
         <sphereGeometry args={[4, 32, 32]} />
         <EnvMaterial color="#FFC300" roughness={0.7} map={map} />
         <Stroke thickness={0.06} color="#b38400" />
@@ -142,7 +159,7 @@ const StylizedCoralCluster = ({ position, scale = [1,1,1], mirror = false, map }
 // Cartoon Polished Rocks - Using flatShading and precise geometry
 const CartoonRocks = ({ position, map }: any) => {
   return (
-    <group position={position}>
+    <group position={position} scale={[0.7, 0.7, 0.7]}>
        {/* Big central rock: Icosahedron + flatShading = Sharp Faceted Style like Sea of Thieves */}
        <mesh position={[0, 0, 0]} scale={[1.8, 1.2, 1.5]} rotation={[0.2, 0.4, 0]}>
          <icosahedronGeometry args={[1.2, 1]} />
@@ -184,7 +201,7 @@ const StylizedChest = ({ position, map }: any) => {
   });
 
   return (
-    <group position={position} rotation={[0, -0.2, 0]} scale={[1.1, 1.1, 1.1]}>
+    <group position={position} rotation={[0, -0.2, 0]} scale={[0.75, 0.75, 0.75]}>
       {/* Wood Base Box */}
       <RoundedBox position={[0, 0.6, 0]} args={[2.5, 1.5, 1.5]} radius={0.1} smoothness={4}>
         <EnvMaterial color="#8B4513" roughness={0.8} map={map} />
@@ -294,22 +311,36 @@ const StylizedJellyfish = ({ position, map }: any) => {
 // Stylized Crab Walking gently
 const StylizedCrab = ({ position, map }: any) => {
   const ref = useRef<THREE.Group>(null);
+  const legsRef = useRef<THREE.Group>(null);
+  
   useFrame((state) => {
     if(ref.current) {
-       // Crabs walk sideways! Let's make it walk back and forth.
-       ref.current.position.x = position[0] + Math.sin(state.clock.elapsedTime * 0.8) * 1.5;
+       // Crabs walk sideways! Math determines dynamic X
+       const currentX = position[0] + Math.sin(state.clock.elapsedTime * 0.8) * 1.5;
+       const currentZ = position[2];
+       ref.current.position.x = currentX;
+       
+       // ROBUST PHYSICS: Always snap exactly to the curved sand surface
+       const groundY = getSandHeight(currentX, currentZ);
        // Bobbing
-       ref.current.position.y = position[1] + Math.abs(Math.sin(state.clock.elapsedTime * 4)) * 0.1;
+       ref.current.position.y = groundY + Math.abs(Math.sin(state.clock.elapsedTime * 4)) * 0.05;
+       
        // Arm waving
        const leftClaw = ref.current.children[3];
        const rightClaw = ref.current.children[4];
        leftClaw.rotation.z = Math.sin(state.clock.elapsedTime * 2) * 0.2;
        rightClaw.rotation.z = -Math.sin(state.clock.elapsedTime * 2.2) * 0.2;
     }
+    if(legsRef.current) {
+       // Scurrying legs
+       legsRef.current.children.forEach((leg, i) => {
+          leg.rotation.z = (i < 3 ? 0.3 : -0.3) + Math.sin(state.clock.elapsedTime * 15 + i) * 0.2;
+       });
+    }
   });
 
   return (
-    <group ref={ref} position={position}>
+    <group ref={ref} position={position} scale={[0.6, 0.6, 0.6]}>
        {/* Body */}
        <mesh scale={[1.2, 0.6, 0.9]} position={[0, 0.3, 0]}>
          <icosahedronGeometry args={[0.5, 1]} />
@@ -333,6 +364,21 @@ const StylizedCrab = ({ position, map }: any) => {
        </group>
        <group position={[0.6, 0.4, 0.4]} rotation={[0, -0.5, -0.4]}>
           <TaperedTube radiusTop={0.2} radiusBottom={0.05} length={0.8} color="#B22222" map={map} />
+       </group>
+       {/* Legs */}
+       <group ref={legsRef}>
+         {[...Array(6)].map((_, i) => {
+           const isLeft = i < 3;
+           const sideCount = i % 3;
+           const xPos = isLeft ? -0.4 : 0.4;
+           const zPos = (sideCount - 1) * 0.35 + 0.1;
+           const rotZ = isLeft ? 0.3 : -0.3;
+           return (
+             <group key={i} position={[xPos, 0.15, zPos]} rotation={[0, 0, rotZ]}>
+                <TaperedTube radiusTop={0.04} radiusBottom={0.01} length={0.5} color="#B22222" thickness={0.02} map={map} />
+             </group>
+           )
+         })}
        </group>
     </group>
   );
@@ -483,25 +529,25 @@ export default function Environment3D() {
       {/* Procedurally sculpting the reference scenes - SHIFTED UP to prevent camera cut-off on short screens */}
       <group position={[0, 2.0, 0]}>
         <WavySandFloor map={texSand} />
-        <StylizedChest position={[3.5, -5.2, -1]} map={texWood} />
-        <CartoonRocks position={[-4.0, -4.5, -1.5]} map={texRock} />
-        <CartoonRocks position={[7.0, -4.5, -1.0]} map={texRock} />
-        <StylizedCoralCluster position={[-2.5, -4.5, -2.5]} scale={[0.8, 0.8, 0.8]} map={texCoral} />
-        <StylizedCoralCluster position={[5.5, -4.8, -2.5]} scale={[1.2, 1.2, 1.2]} mirror={true} map={texCoral} />
+        <StylizedChest position={[3.5, getSandHeight(3.5, -1) + 0.1, -1]} map={texWood} />
+        <CartoonRocks position={[-4.0, getSandHeight(-4.0, -1.5) + 0.4, -1.5]} map={texRock} />
+        <CartoonRocks position={[7.0, getSandHeight(7.0, -1.0) + 0.5, -1.0]} map={texRock} />
+        <StylizedCoralCluster position={[-2.5, getSandHeight(-2.5, -2.5) + 0.3, -2.5]} scale={[0.6, 0.6, 0.6]} map={texCoral} />
+        <StylizedCoralCluster position={[5.5, getSandHeight(5.5, -2.5) + 0.5, -2.5]} scale={[0.8, 0.8, 0.8]} mirror={true} map={texCoral} />
         
-        {/* New 3D Creatures (Y positions raised to float perfectly ON the sand) */}
-        <StylizedCrab position={[-1.0, -5.6, 1.0]} map={texCrab} />
-        <StylizedCrab position={[5.0, -5.6, -0.5]} map={texCrab} />
+        {/* Dynamic Physics Creatures */}
+        <StylizedCrab position={[-1.0, 0, 1.0]} map={texCrab} />
+        <StylizedCrab position={[5.0, 0, -0.5]} map={texCrab} />
         
-        <StylizedStarfish position={[-3.5, -5.6, 0.5]} rotation={[-1.5, 0, 0.5]} scale={[1.2, 1.2, 1.2]} map={texStarfish} />
-        <StylizedStarfish position={[3.0, -5.6, -2.5]} rotation={[-0.8, 0, 0.4]} scale={[0.8, 0.8, 0.8]} map={texStarfish} />
+        <StylizedStarfish position={[-3.5, getSandHeight(-3.5, 0.5) + 0.1, 0.5]} rotation={[-1.5, 0, 0.5]} scale={[0.6, 0.6, 0.6]} map={texStarfish} />
+        <StylizedStarfish position={[3.0, getSandHeight(3.0, -2.5) + 0.1, -2.5]} rotation={[-0.8, 0, 0.4]} scale={[0.4, 0.4, 0.4]} map={texStarfish} />
 
-        <StylizedJellyfish position={[-6.0, -2.0, -1.0]} map={texJellyfish} />
-        <StylizedJellyfish position={[4.0, -1.0, -2.0]} map={texJellyfish} />
+        <StylizedJellyfish position={[-6.0, getSandHeight(-6.0, -1.0) + 3.0, -1.0]} scale={[0.6, 0.6, 0.6]} map={texJellyfish} />
+        <StylizedJellyfish position={[4.0, getSandHeight(4.0, -2.0) + 4.0, -2.0]} scale={[0.5, 0.5, 0.5]} map={texJellyfish} />
 
-        <StylizedShell position={[-1.5, -5.8, 2.0]} rotation={[-0.2, 0.5, 0]} scale={[0.6, 0.6, 0.6]} map={texShell} />
-        <StylizedShell position={[2.5, -5.8, 1.5]} rotation={[0.1, -0.8, 0]} scale={[0.8, 0.8, 0.8]} map={texShell} />
-        <StylizedShell position={[-5.0, -5.8, 1.0]} rotation={[0.0, 1.2, 0.2]} scale={[0.5, 0.5, 0.5]} map={texShell} />
+        <StylizedShell position={[-1.5, getSandHeight(-1.5, 2.0), 2.0]} rotation={[-0.2, 0.5, 0]} scale={[0.4, 0.4, 0.4]} map={texShell} />
+        <StylizedShell position={[2.5, getSandHeight(2.5, 1.5), 1.5]} rotation={[0.1, -0.8, 0]} scale={[0.5, 0.5, 0.5]} map={texShell} />
+        <StylizedShell position={[-5.0, getSandHeight(-5.0, 1.0), 1.0]} rotation={[0.0, 1.2, 0.2]} scale={[0.3, 0.3, 0.3]} map={texShell} />
       </group>
 
     </group>

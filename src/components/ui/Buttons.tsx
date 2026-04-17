@@ -52,15 +52,15 @@ export function NavButton({
 }
 
 const nb = StyleSheet.create({
-  btn: { alignItems: 'center', width: 60, paddingVertical: 10, borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', backgroundColor: 'rgba(0,0,0,0.5)', position: 'relative',
+  btn: { alignItems: 'center', width: 50, paddingVertical: 8, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', backgroundColor: 'rgba(0,0,0,0.5)', position: 'relative',
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.5, shadowRadius: 8 },
       android: { elevation: 8 },
     }),
   },
   gradient: { ...StyleSheet.absoluteFillObject },
-  iconWrap: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginBottom: 4, position: 'relative' },
-  label: { fontSize: 9, fontWeight: '700', color: 'rgba(255,255,255,0.7)', letterSpacing: 0.5, textTransform: 'uppercase' },
+  iconWrap: { width: 28, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center', borderWidth: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginBottom: 2, position: 'relative' },
+  label: { fontSize: 8, fontWeight: '700', color: 'rgba(255,255,255,0.7)', letterSpacing: 0.5, textTransform: 'uppercase' },
   badge: { position: 'absolute', top: -4, right: -4, backgroundColor: '#FF3B30', minWidth: 14, height: 14, borderRadius: 7, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#fff' },
   badgeText: { color: '#fff', fontSize: 8, fontWeight: '900' },
 })
