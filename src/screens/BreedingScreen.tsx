@@ -67,69 +67,77 @@ export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
   }
 
   return (
-    <View style={s.container}>
-      {/* Header */}
-      <View style={s.header}>
+    <View style={s.containerRow}>
+      {/* Left Sidebar */}
+      <View style={s.sidePanel}>
         <View style={s.headerLeft}>
           <View style={s.headerIcon}>
             <Dna color="#FF69B4" size={18} strokeWidth={2} />
           </View>
           <View>
             <Text style={s.title}>Criadouro</Text>
-            <Text style={s.subtitle}>Laboratório Genético</Text>
+            <Text style={s.subtitle}>Genética</Text>
           </View>
         </View>
-        <TouchableOpacity style={s.closeBtn} onPress={onClose}>
-          <X color="rgba(255,255,255,0.6)" size={16} strokeWidth={2.5} />
-        </TouchableOpacity>
+
+        <View style={s.divider} />
+
+        {/* LEFT: Breeding station */}
+        <View style={s.stationWrap}>
+          <View style={s.station}>
+            {/* Fish slots */}
+            <View style={s.slotRow}>
+              <FishSlot fish={selected[0]} label="Pai / Mãe" />
+              <PulseHeart active={canBreed} />
+              <FishSlot fish={selected[1]} label="Pai / Mãe" />
+            </View>
+
+            {/* Counter */}
+            <Text style={s.counter}>
+              {selected.length} <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>/ 2</Text>
+            </Text>
+
+            {/* Breed Button */}
+            <Animated.View style={{ width: '100%', transform: [{ scale: breedAnim }] }}>
+              <TouchableOpacity
+                style={[s.breedBtn, !canBreed && s.breedBtnDisabled]}
+                onPress={handleBreed}
+                disabled={!canBreed || breeding}
+                activeOpacity={0.85}
+              >
+                <LinearGradient
+                  colors={canBreed ? ['#FF69B4', '#C71585'] : ['#444', '#333']}
+                  style={s.breedGrad}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <Sparkles color={canBreed ? '#fff' : 'rgba(255,255,255,0.3)'} size={16} strokeWidth={2} />
+                  <Text style={[s.breedText, !canBreed && { color: 'rgba(255,255,255,0.3)' }]}>
+                    {breeding ? 'Cruzando...' : 'Cruzar'}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </Animated.View>
+
+            {/* Info pill */}
+            {!canBreed && (
+               <View style={s.infoPill}>
+                 <Text style={s.infoText}>Selecione 2 adultos</Text>
+               </View>
+            )}
+          </View>
+        </View>
       </View>
 
-      <View style={s.divider} />
+      {/* Right Content */}
+      <View style={s.mainPanel}>
+        {/* Absolute Close Button */}
+        <TouchableOpacity style={s.closeBtnAbs} onPress={onClose}>
+          <X color="rgba(255,255,255,0.6)" size={16} strokeWidth={2.5} />
+        </TouchableOpacity>
 
-      <ScrollView contentContainerStyle={s.body} style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-        {/* LEFT: Breeding station */}
-        <View style={s.station}>
-          {/* Fish slots */}
-          <View style={s.slotRow}>
-            <FishSlot fish={selected[0]} label="Pai / Mãe" />
-            <PulseHeart active={canBreed} />
-            <FishSlot fish={selected[1]} label="Pai / Mãe" />
-          </View>
 
-          {/* Counter */}
-          <Text style={s.counter}>
-            {selected.length} <Text style={{ color: 'rgba(255,255,255,0.4)' }}>/ 2 selecionados</Text>
-          </Text>
-
-          {/* Breed Button */}
-          <Animated.View style={{ width: '100%', transform: [{ scale: breedAnim }] }}>
-            <TouchableOpacity
-              style={[s.breedBtn, !canBreed && s.breedBtnDisabled]}
-              onPress={handleBreed}
-              disabled={!canBreed || breeding}
-              activeOpacity={0.85}
-            >
-              <LinearGradient
-                colors={canBreed ? ['#FF69B4', '#C71585'] : ['#444', '#333']}
-                style={s.breedGrad}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
-                <Sparkles color={canBreed ? '#fff' : 'rgba(255,255,255,0.3)'} size={16} strokeWidth={2} />
-                <Text style={[s.breedText, !canBreed && { color: 'rgba(255,255,255,0.3)' }]}>
-                  {breeding ? 'Cruzando...' : 'Cruzar Agora'}
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </Animated.View>
-
-          {/* Info pill */}
-          {!canBreed && (
-            <View style={s.infoPill}>
-              <Text style={s.infoText}>Selecione 2 peixes adultos →</Text>
-            </View>
-          )}
-        </View>
+        <ScrollView contentContainerStyle={s.body} showsVerticalScrollIndicator={false}>
 
         {/* RIGHT: Fish grid */}
         <View style={s.gridWrap}>
@@ -155,24 +163,20 @@ export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
             )}
           </View>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </View>
     </View>
   )
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'transparent' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-  },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  containerRow: { flex: 1, flexDirection: 'row', position: 'relative' },
+  sidePanel: { width: 270, backgroundColor: 'rgba(0,0,0,0.15)', borderRightWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  mainPanel: { flex: 1 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 },
   headerIcon: {
-    width: 34,
-    height: 34,
+    width: 32,
+    height: 32,
     borderRadius: 10,
     backgroundColor: 'rgba(255,105,180,0.15)',
     borderWidth: 1,
@@ -180,24 +184,29 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { fontSize: 17, fontWeight: '900', color: '#fff', letterSpacing: 0.3 },
-  subtitle: { fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: '700', letterSpacing: 0.8, marginTop: 1 },
-  closeBtn: {
-    width: 30,
-    height: 30,
+  title: { fontSize: 13, fontWeight: '900', color: '#fff', letterSpacing: 0.3 },
+  subtitle: { fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: '700', letterSpacing: 0.8, marginTop: 1 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10, padding: 14, paddingBottom: 0 },
+  closeBtnAbs: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    width: 28,
+    height: 28,
     borderRadius: 15,
     backgroundColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 99,
   },
-  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginHorizontal: 18 },
-  body: { flexDirection: 'row', flexWrap: 'wrap', padding: 14, gap: 12, paddingBottom: 40 },
+  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginHorizontal: 14 },
+
+  stationWrap: { flex: 1, padding: 14 },
+  body: { padding: 14, paddingTop: 40, gap: 12, paddingBottom: 40 },
 
   // Station (left)
   station: {
-    flexBasis: '38%',
-    flexGrow: 1,
-    minWidth: 260,
+    flex: 1,
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 18,
     borderWidth: 1,
@@ -228,7 +237,7 @@ const s = StyleSheet.create({
   infoText: { fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: '600' },
 
   // Grid (right)
-  gridWrap: { flexBasis: '50%', flexGrow: 1, minWidth: 260, gap: 8 },
+  gridWrap: { flex: 1, gap: 8 },
   gridTitle: {
     fontSize: 10,
     fontWeight: '800',

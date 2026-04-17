@@ -80,35 +80,40 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
   }
 
   return (
-    <View style={s.container}>
-      {/* Header */}
-      <View style={s.header}>
+    <View style={s.containerRow}>
+      {/* Left Sidebar */}
+      <View style={s.sidePanel}>
         <View style={s.headerLeft}>
           <View style={s.headerIcon}>
             <Store color="#00E5FF" size={18} strokeWidth={2} />
           </View>
           <View>
             <Text style={s.title}>
-              {activeTab === 'shop' ? 'Loja de Peixes' : activeTab === 'food' ? 'Mercado de Ração' : 'Necrotério'}
+              {activeTab === 'shop' ? 'Loja' : activeTab === 'food' ? 'Ração' : 'Necrotério'}
             </Text>
-            <Text style={s.subtitle}>Sua carteira • <Text style={{ color: '#FFD700' }}>{Math.floor(coins).toLocaleString()} coins</Text></Text>
+            <Text style={s.subtitle}>Carteira • <Text style={{ color: '#FFD700' }}>{Math.floor(coins).toLocaleString()}</Text></Text>
           </View>
         </View>
-        <View style={s.headerRight}>
-          <BalancePill coins={coins} />
-          <TouchableOpacity style={s.closeBtn} onPress={onClose}>
-            <X color="rgba(255,255,255,0.6)" size={16} strokeWidth={2.5} />
-          </TouchableOpacity>
+
+        <View style={s.divider} />
+
+        <View style={s.tabWrap}>
+          <TabBar vertical tabs={tabOptions} active={activeTab} setActive={setActiveTab} deadCount={deadFishes.length} />
         </View>
       </View>
 
-      <View style={s.divider} />
+      {/* Right Content */}
+      <View style={s.mainPanel}>
+        {/* Absolute Close Button */}
+        <TouchableOpacity style={s.closeBtnAbs} onPress={onClose}>
+          <X color="rgba(255,255,255,0.6)" size={16} strokeWidth={2.5} />
+        </TouchableOpacity>
 
-      {/* Tabs */}
-      <TabBar tabs={tabOptions} active={activeTab} setActive={setActiveTab} deadCount={deadFishes.length} />
+        <View style={s.headerRight}>
+          <BalancePill coins={coins} />
+        </View>
 
-      {/* Content */}
-      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         <View style={s.grid}>
 
           {activeTab === 'shop' && (
@@ -220,23 +225,19 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
           )}
         </View>
       </ScrollView>
+      </View>
     </View>
   )
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-  },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  containerRow: { flex: 1, flexDirection: 'row', position: 'relative' },
+  sidePanel: { width: 250, backgroundColor: 'rgba(0,0,0,0.15)', borderRightWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  mainPanel: { flex: 1 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 },
   headerIcon: {
-    width: 34,
-    height: 34,
+    width: 32,
+    height: 32,
     borderRadius: 10,
     backgroundColor: 'rgba(0,229,255,0.12)',
     borderWidth: 1,
@@ -244,19 +245,24 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { fontSize: 17, fontWeight: '900', color: '#fff', letterSpacing: 0.3 },
-  subtitle: { fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: '700', marginTop: 1 },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  closeBtn: {
-    width: 30,
-    height: 30,
+  title: { fontSize: 15, fontWeight: '900', color: '#fff', letterSpacing: 0.3 },
+  subtitle: { fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: '700', marginTop: 1 },
+  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginHorizontal: 14 },
+  tabWrap: { flex: 1 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10, padding: 14, paddingBottom: 0, paddingRight: 50 },
+  closeBtnAbs: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    width: 28,
+    height: 28,
     borderRadius: 15,
     backgroundColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 99,
   },
-  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginHorizontal: 18 },
-  scroll: { paddingVertical: 10, paddingHorizontal: 8, paddingBottom: 40 },
+  scroll: { paddingVertical: 10, paddingHorizontal: 10, paddingBottom: 40 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
   empty: { width: '100%', alignItems: 'center', paddingVertical: 40, gap: 10 },
   emptyEmoji: { fontSize: 48 },

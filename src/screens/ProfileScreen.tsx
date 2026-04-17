@@ -48,9 +48,9 @@ export default function ProfileScreen({ onClose }: { onClose?: () => void }) {
   }
 
   return (
-    <View style={s.container}>
-      {/* Header */}
-      <View style={s.header}>
+    <View style={s.containerRow}>
+      {/* Left Sidebar */}
+      <View style={s.sidePanel}>
         <View style={s.headerLeft}>
           <View style={s.headerIcon}>
             <User color="#00E5FF" size={18} strokeWidth={2} />
@@ -60,45 +60,65 @@ export default function ProfileScreen({ onClose }: { onClose?: () => void }) {
             <Text style={s.subtitle}>Mestre dos Mares</Text>
           </View>
         </View>
-        <TouchableOpacity style={s.closeBtn} onPress={onClose}>
-          <X color="rgba(255,255,255,0.6)" size={16} strokeWidth={2.5} />
-        </TouchableOpacity>
-      </View>
 
-      <View style={s.divider} />
+        <View style={s.divider} />
 
-      <ScrollView contentContainerStyle={s.body} style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-        {/* Hero section */}
-        <View style={s.hero}>
-          <LinearGradient
-            colors={['rgba(0,229,255,0.08)', 'transparent']}
-            style={StyleSheet.absoluteFillObject}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
-          />
+        <ScrollView contentContainerStyle={s.leftContent} showsVerticalScrollIndicator={false}>
+          {/* Hero section */}
+          <View style={s.hero}>
+            <LinearGradient
+              colors={['rgba(0,229,255,0.08)', 'transparent']}
+              style={StyleSheet.absoluteFillObject}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+            />
 
-          <XPRing level={level} pct={xpPct} />
+            <XPRing level={level} pct={xpPct} />
 
-          <View style={s.heroInfo}>
-            {/* Email */}
-            <View style={s.emailRow}>
-              <View style={s.emailDot} />
-              <Text style={s.emailText} numberOfLines={1}>{email}</Text>
-            </View>
-
-            {/* XP bar */}
-            <View style={s.xpSection}>
-              <View style={s.xpLabelRow}>
-                <Text style={s.xpLabel}>Experiência</Text>
-                <Text style={s.xpVal}>{Math.floor(xpVal).toLocaleString()} / {xpNeeded.toLocaleString()} XP</Text>
+            <View style={s.heroInfo}>
+              {/* Email */}
+              <View style={s.emailRow}>
+                <View style={s.emailDot} />
+                <Text style={s.emailText} numberOfLines={1}>{email}</Text>
               </View>
-              <View style={s.xpTrack}>
-                <Animated.View style={[s.xpFill, { width: `${xpPct}%` }]} />
-                <View style={s.xpGloss} />
+
+              {/* XP bar */}
+              <View style={s.xpSection}>
+                <View style={s.xpLabelRow}>
+                  <Text style={s.xpLabel}>XP</Text>
+                  <Text style={s.xpVal}>{Math.floor(xpVal).toLocaleString()}</Text>
+                </View>
+                <View style={s.xpTrack}>
+                  <Animated.View style={[s.xpFill, { width: `${xpPct}%` }]} />
+                  <View style={s.xpGloss} />
+                </View>
               </View>
             </View>
           </View>
-        </View>
+
+          {/* Logout */}
+          <TouchableOpacity style={s.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
+            <LinearGradient
+              colors={['rgba(220,20,60,0.25)', 'rgba(139,0,0,0.2)']}
+              style={s.logoutGrad}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <LogOut color="#FF6B6B" size={16} strokeWidth={2.5} />
+              <Text style={s.logoutText}>Desconectar</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+
+      {/* Right Content */}
+      <View style={s.mainPanel}>
+        {/* Absolute Close Button */}
+        <TouchableOpacity style={s.closeBtnAbs} onPress={onClose}>
+          <X color="rgba(255,255,255,0.6)" size={16} strokeWidth={2.5} />
+        </TouchableOpacity>
+
+      <ScrollView contentContainerStyle={s.body} showsVerticalScrollIndicator={false}>
 
         {/* Stats row */}
         <View style={s.statsRow}>
@@ -131,36 +151,20 @@ export default function ProfileScreen({ onClose }: { onClose?: () => void }) {
           <AchievementRow fishes={fishes} deadFishes={deadFishes} />
         </View>
 
-        {/* Logout */}
-        <TouchableOpacity style={s.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
-          <LinearGradient
-            colors={['rgba(220,20,60,0.25)', 'rgba(139,0,0,0.2)']}
-            style={s.logoutGrad}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-          >
-            <LogOut color="#FF6B6B" size={16} strokeWidth={2.5} />
-            <Text style={s.logoutText}>Desconectar</Text>
-          </LinearGradient>
-        </TouchableOpacity>
       </ScrollView>
+      </View>
     </View>
   )
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-  },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  containerRow: { flex: 1, flexDirection: 'row', position: 'relative' },
+  sidePanel: { width: 250, backgroundColor: 'rgba(0,0,0,0.15)', borderRightWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  mainPanel: { flex: 1 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 },
   headerIcon: {
-    width: 34,
-    height: 34,
+    width: 32,
+    height: 32,
     borderRadius: 10,
     backgroundColor: 'rgba(0,229,255,0.12)',
     borderWidth: 1,
@@ -168,19 +172,25 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { fontSize: 17, fontWeight: '900', color: '#fff', letterSpacing: 0.3 },
-  subtitle: { fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: '700', letterSpacing: 0.5, marginTop: 1 },
-  closeBtn: {
-    width: 30,
-    height: 30,
+  title: { fontSize: 13, fontWeight: '900', color: '#fff', letterSpacing: 0.3 },
+  subtitle: { fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: '700', letterSpacing: 0.5, marginTop: 1 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10, padding: 14, paddingBottom: 0 },
+  closeBtnAbs: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    width: 28,
+    height: 28,
     borderRadius: 15,
     backgroundColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 99,
   },
-  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginHorizontal: 18 },
+  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginHorizontal: 14 },
+  leftContent: { flexGrow: 1, padding: 14, justifyContent: 'space-between', gap: 14, paddingBottom: 20 },
 
-  body: { flexGrow: 1, padding: 14, gap: 12, paddingBottom: 40 },
+  body: { padding: 14, paddingTop: 40, gap: 12, paddingBottom: 40 },
 
   // Hero
   hero: {

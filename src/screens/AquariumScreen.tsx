@@ -232,9 +232,11 @@ const styles = StyleSheet.create({
   sideNav: {
     position: 'absolute',
     right: 14,
-    top: height * 0.3,
+    top: Platform.OS === 'ios' ? 100 : 80,
+    bottom: 20,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
     zIndex: 10,
   },
   fishCount: {

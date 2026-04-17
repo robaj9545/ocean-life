@@ -71,31 +71,33 @@ export function TabBar({
   active,
   setActive,
   deadCount,
+  vertical,
 }: {
   tabs: { id: string; icon: React.ReactNode; label: string; accent: string }[]
   active: string
   setActive: (t: any) => void
   deadCount?: number
+  vertical?: boolean
 }) {
   return (
-    <View style={tb.row}>
+    <View style={[tb.row, vertical && tb.col]}>
       {tabs.map(t => {
         const isActive = active === t.id
         return (
           <TouchableOpacity
             key={t.id}
-            style={[tb.tab, isActive && { borderColor: `${t.accent}80`, backgroundColor: `${t.accent}18` }]}
+            style={[tb.tab, vertical && tb.tabVertical, isActive && { borderColor: `${t.accent}80`, backgroundColor: `${t.accent}18` }]}
             onPress={() => setActive(t.id)}
             activeOpacity={0.75}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+            <View style={{ flexDirection: vertical ? 'column' : 'row', alignItems: 'center', gap: 5 }}>
               <View style={{ opacity: isActive ? 1 : 0.4 }}>
                 {React.cloneElement(t.icon as any, { color: isActive ? t.accent : '#fff' })}
               </View>
-              <Text style={[tb.label, isActive && { color: t.accent }]}>{t.label}</Text>
+              <Text style={[tb.label, vertical && tb.labelVertical, isActive && { color: t.accent }]} numberOfLines={1}>{t.label}</Text>
               {t.id === 'cemetery' && deadCount && deadCount > 0 ? (
-                <View style={[tb.dot, { backgroundColor: t.accent }]}>
-                  <Text style={tb.dotText}>{deadCount}</Text>
+                <View style={[tb.dot, vertical && tb.dotVertical, { backgroundColor: t.accent }]}>
+                   <Text style={tb.dotText}>{deadCount}</Text>
                 </View>
               ) : null}
             </View>
@@ -108,8 +110,12 @@ export function TabBar({
 
 const tb = StyleSheet.create({
   row: { flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 10, gap: 8, backgroundColor: 'rgba(0,0,0,0.2)' },
+  col: { flexDirection: 'column', height: '100%', paddingHorizontal: 10, alignContent: 'center', justifyContent: 'flex-start', flex: 1 },
   tab: { flex: 1, paddingVertical: 8, paddingHorizontal: 6, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center' },
+  tabVertical: { flex: 0, width: '100%', paddingVertical: 10, marginBottom: 4 },
   label: { fontSize: 11, fontWeight: '800', color: 'rgba(255,255,255,0.45)', letterSpacing: 0.3 },
+  labelVertical: { fontSize: 10 },
   dot: { width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  dotVertical: { position: 'absolute', top: -4, right: -4 },
   dotText: { fontSize: 9, fontWeight: '900', color: '#fff' },
 })
