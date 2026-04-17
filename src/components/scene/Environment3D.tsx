@@ -536,8 +536,8 @@ export default function Environment3D() {
         <StylizedCoralCluster position={[5.5, getSandHeight(5.5, -2.5) + 0.5, -2.5]} scale={[0.8, 0.8, 0.8]} mirror={true} map={texCoral} />
         
         {/* Dynamic Physics Creatures */}
-        <StylizedCrab position={[-1.0, 0, 1.0]} map={texCrab} />
-        <StylizedCrab position={[5.0, 0, -0.5]} map={texCrab} />
+        <StylizedCrab position={[-1.0, 0, 1.5]} map={texCrab} />
+        <StylizedCrab position={[5.0, 0, 1.0]} map={texCrab} />
         
         <StylizedStarfish position={[-3.5, getSandHeight(-3.5, 0.5) + 0.1, 0.5]} rotation={[-1.5, 0, 0.5]} scale={[0.6, 0.6, 0.6]} map={texStarfish} />
         <StylizedStarfish position={[3.0, getSandHeight(3.0, -2.5) + 0.1, -2.5]} rotation={[-0.8, 0, 0.4]} scale={[0.4, 0.4, 0.4]} map={texStarfish} />
