@@ -36,14 +36,19 @@ export function breed(fishA: FishEntity, fishB: FishEntity): Omit<FishEntity, 'i
     offspringColor = `hsl(${Math.random() * 360},80%,60%)`
   }
 
+  // Define stats based on DNA
+  const baseSize = offspringDNA.sizeGene === 'B' ? 25 : 18;
+  const baseSpeed = offspringDNA.speedGene === 'C' ? 0.8 : 0.4;
+
   return {
     type: 'fish',
     species: offspringSpecies,
     rarity: offspringRarity,
     color: offspringColor,
-    size: 20, // starts small
-    speed: 0.5,
+    size: baseSize, // influenced by DNA
+    speed: baseSpeed, // influenced by DNA
     hunger: 100,
+    health: 100,
     happiness: 100,
     age: 0,
     position: { x: 150, y: 150 }, // spawn pos will be set later

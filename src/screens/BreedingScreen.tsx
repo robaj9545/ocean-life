@@ -2,7 +2,6 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { Dna, Sparkles, X } from 'lucide-react-native'
 import React, { useRef, useState } from 'react'
 import {
-  Alert,
   Animated,
   ScrollView,
   StyleSheet,
@@ -14,6 +13,7 @@ import { fishService } from '../services/fishService'
 import { FishEntity, useGameStore } from '../store/useGameStore'
 import { breed } from '../utils/breeding'
 import { FishCard, FishSlot, PulseHeart } from '../components/screens/BreedingComponents'
+import { useAlert } from '../components/ui/Alert'
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
@@ -25,6 +25,7 @@ export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
   const [selected, setSelected] = useState<FishEntity[]>([])
   const [breeding, setBreeding] = useState(false)
   const breedAnim = useRef(new Animated.Value(1)).current
+  const { alert } = useAlert()
 
   const adults = fishes.filter(f => f.stage === 'adult')
   const canBreed = selected.length === 2
@@ -36,7 +37,7 @@ export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
     } else if (selected.length < 2) {
       setSelected([...selected, fish])
     } else {
-      Alert.alert('Atenção', 'Selecione apenas 2 peixes!')
+      alert({ type: 'warning', title: 'Atenção', message: 'Selecione apenas 2 peixes!' })
     }
   }
 
@@ -53,13 +54,14 @@ export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
     if (data) {
       addFish(data)
       incrementStat('breed', 1)
-      Alert.alert(
-        '💕 Nascimento!',
-        `Um lindo ${data.species === 'clownfish' ? 'Peixe-Palhaço' : 'Cirurgião-Patela'} filhote chegou!`,
-      )
+      alert({
+        type: 'success',
+        title: '💕 Nascimento!',
+        message: `Um lindo ${data.species === 'clownfish' ? 'Peixe-Palhaço' : 'Cirurgião-Patela'} filhote chegou!`,
+      })
       setSelected([])
     } else {
-      Alert.alert('Erro', 'Não foi possível cruzar os peixes.')
+      alert({ type: 'error', title: 'Erro', message: 'Não foi possível cruzar os peixes.' })
     }
     setBreeding(false)
   }

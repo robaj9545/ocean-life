@@ -2,7 +2,6 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { Coins, Fish, LogOut, Skull, User, X } from 'lucide-react-native'
 import React, { useEffect, useState } from 'react'
 import {
-  Alert,
   Animated,
   StyleSheet,
   Text,
@@ -13,6 +12,7 @@ import {
 import { supabase } from '../services/supabase'
 import { useGameStore } from '../store/useGameStore'
 import { XPRing, StatCard, AchievementRow } from '../components/screens/ProfileComponents'
+import { useAlert } from '../components/ui/Alert';
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function ProfileScreen({ onClose }: { onClose?: () => void }) {
@@ -33,11 +33,18 @@ export default function ProfileScreen({ onClose }: { onClose?: () => void }) {
   const xpNeeded = level * 1000
   const xpPct = Math.min(100, (xpVal / xpNeeded) * 100)
 
+  const { alert } = useAlert();
+
   const handleLogout = () => {
-    Alert.alert('Sair', 'Deseja realmente sair da sua conta?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Sair', style: 'destructive', onPress: () => supabase.auth.signOut() },
-    ])
+    alert({
+      type: 'warning',
+      title: 'Sair',
+      message: 'Deseja realmente sair da sua conta?',
+      buttons: [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Sair', style: 'destructive', onPress: () => supabase.auth.signOut() }
+      ]
+    });
   }
 
   return (

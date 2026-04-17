@@ -68,7 +68,7 @@ const debouncedPush = (get: () => GameState) => {
     fishService.saveFishes(s.fishes);
     fishService.saveDeadFishes(s.deadFishes);
     statsService.saveStats(s.stats, s.claimedMissions, s.dailyProgress, s.lastDailyReset);
-  }, 5000);
+  }, 2000);
 }
 
 export const useGameStore = create<GameState>()(
@@ -90,11 +90,11 @@ export const useGameStore = create<GameState>()(
     addCoins: (amount) => set((state) => {
       const next = { coins: state.coins + amount };
       // Fire and forget save
-      setTimeout(() => get().pushToCloud(), 100);
+      get().pushToCloud();
       return next;
     }),
     addFood: (amount) => set((state) => {
-      setTimeout(() => get().pushToCloud(), 100);
+      get().pushToCloud();
       return { foodAmount: state.foodAmount + amount };
     }),
     consumeFood: (amount) => {
@@ -102,7 +102,7 @@ export const useGameStore = create<GameState>()(
       if (state.foodAmount >= amount) {
          set({ foodAmount: state.foodAmount - amount });
          get().incrementStat('feed', 1);
-         setTimeout(() => get().pushToCloud(), 100);
+         get().pushToCloud();
          return true;
       }
       return false;
@@ -125,18 +125,18 @@ export const useGameStore = create<GameState>()(
       return { xp: newXp, level: newLevel };
     }),
     addFish: (fish) => set((state) => {
-      setTimeout(() => get().pushToCloud(), 100);
+      get().pushToCloud();
       return { fishes: [...state.fishes, fish] };
     }),
     removeFish: (id) => set((state) => {
-      setTimeout(() => get().pushToCloud(), 100);
+      get().pushToCloud();
       return { fishes: state.fishes.filter(f => f.id !== id) };
     }),
     updateFishes: (updater) => set((state) => ({ fishes: updater(state.fishes) })),
     killFish: (id) => set((state) => {
       const deceased = state.fishes.find(f => f.id === id);
       if (!deceased || state.deadFishes.some(f => f.id === id)) return state;
-      setTimeout(() => get().pushToCloud(), 100);
+      get().pushToCloud();
       return {
         fishes: state.fishes.filter(f => f.id !== id),
         deadFishes: [...state.deadFishes, { ...deceased, deathTime: Date.now() }]
@@ -145,10 +145,8 @@ export const useGameStore = create<GameState>()(
     reviveFish: (id, cost) => set((state) => {
       const ghost = state.deadFishes.find(f => f.id === id);
       if (!ghost || state.coins < cost) return state;
-      setTimeout(() => {
-         get().incrementStat('revive', 1);
-         get().pushToCloud();
-      }, 100);
+      get().incrementStat('revive', 1);
+      get().pushToCloud();
       return {
         coins: state.coins - cost,
         deadFishes: state.deadFishes.filter(f => f.id !== id),
@@ -173,7 +171,7 @@ export const useGameStore = create<GameState>()(
     incrementStat: (action, amount = 1) => set((state) => {
       const newStats = { ...state.stats, [action]: (state.stats[action] || 0) + amount };
       const newDaily = { ...state.dailyProgress, [action]: (state.dailyProgress[action] || 0) + amount };
-      setTimeout(() => get().pushToCloud(), 100);
+      get().pushToCloud();
       return { stats: newStats, dailyProgress: newDaily };
     }),
     
@@ -183,7 +181,7 @@ export const useGameStore = create<GameState>()(
       if (now - state.lastDailyReset > ONE_DAY) {
         // Reset daily missions progress and last reset time
         const newClaimed = state.claimedMissions.filter(id => !id.startsWith('daily_'));
-        setTimeout(() => get().pushToCloud(), 100);
+        get().pushToCloud();
         return { dailyProgress: {}, claimedMissions: newClaimed, lastDailyReset: now };
       }
       return state;

@@ -21,6 +21,14 @@ const EnvMaterial = ({ color, roughness = 0.4, metalness = 0.1, ...props }: any)
   />
 );
 
+const FallbackCapsule = ({ radius, length, color, thickness=0.05 }: any) => (
+  <group>
+    <mesh><cylinderGeometry args={[radius, radius, length, 16]} /><EnvMaterial color={color} /><Stroke thickness={thickness} /></mesh>
+    <mesh position={[0, length/2, 0]}><sphereGeometry args={[radius, 16, 16]} /><EnvMaterial color={color} /><Stroke thickness={thickness} /></mesh>
+    <mesh position={[0, -length/2, 0]}><sphereGeometry args={[radius, 16, 16]} /><EnvMaterial color={color} /><Stroke thickness={thickness} /></mesh>
+  </group>
+);
+
 // Match Image #5: Wavy, sculpted golden sand
 const WavySandFloor = () => {
   const sandRef = useRef<THREE.Group>(null);
@@ -98,28 +106,20 @@ const StylizedCoralCluster = ({ position, scale = [1,1,1], mirror = false }: any
       </mesh>
       
       {/* Orange Tubes (using capsule for cuteness) */}
-      <mesh position={[-0.5 * scale[0], 1.2 * scale[1], -0.5 * scale[2]]} rotation={[0, 0, 0.2]} scale={scale}>
-         <capsuleGeometry args={[0.25, 1.5, 16, 16]} />
-         <EnvMaterial color="#FF8C00" />
-         <Stroke thickness={0.05} />
-      </mesh>
-      <mesh position={[0.4 * scale[0], 1.5 * scale[1], -0.2 * scale[2]]} rotation={[0.2, 0, -0.2]} scale={scale}>
-         <capsuleGeometry args={[0.2, 2, 16, 16]} />
-         <EnvMaterial color="#FFA500" />
-         <Stroke thickness={0.05} />
-      </mesh>
+      <group position={[-0.5 * scale[0], 1.2 * scale[1], -0.5 * scale[2]]} rotation={[0, 0, 0.2]} scale={scale}>
+         <FallbackCapsule radius={0.25} length={1.5} color="#FF8C00" />
+      </group>
+      <group position={[0.4 * scale[0], 1.5 * scale[1], -0.2 * scale[2]]} rotation={[0.2, 0, -0.2]} scale={scale}>
+         <FallbackCapsule radius={0.2} length={2} color="#FFA500" />
+      </group>
 
       {/* Pink Anemone Fingers */}
-      <mesh position={[1.2 * scale[0], 0.8 * scale[1], 0.5 * scale[2]]} rotation={[0, 0, -0.5]} scale={scale}>
-         <capsuleGeometry args={[0.15, 1, 16, 16]} />
-         <EnvMaterial color="#FF69B4" />
-         <Stroke thickness={0.05} />
-      </mesh>
-      <mesh position={[1.5 * scale[0], 0.5 * scale[1], 0.2 * scale[2]]} rotation={[0.2, 0, -0.8]} scale={scale}>
-         <capsuleGeometry args={[0.12, 0.8, 16, 16]} />
-         <EnvMaterial color="#FFB6C1" />
-         <Stroke thickness={0.05} />
-      </mesh>
+      <group position={[1.2 * scale[0], 0.8 * scale[1], 0.5 * scale[2]]} rotation={[0, 0, -0.5]} scale={scale}>
+         <FallbackCapsule radius={0.15} length={1} color="#FF69B4" />
+      </group>
+      <group position={[1.5 * scale[0], 0.5 * scale[1], 0.2 * scale[2]]} rotation={[0.2, 0, -0.8]} scale={scale}>
+         <FallbackCapsule radius={0.12} length={0.8} color="#FFB6C1" />
+      </group>
     </Float>
   );
 }
@@ -148,16 +148,12 @@ const CartoonRocks = ({ position }: any) => {
        </mesh>
        
        {/* Tiny green shoots */}
-       <mesh position={[-2.2, 0.2, 0]} rotation={[0, 0, -0.3]}>
-          <capsuleGeometry args={[0.08, 0.5, 8, 16]} />
-          <EnvMaterial color="#7CFC00" />
-          <Stroke thickness={0.04} />
-       </mesh>
-       <mesh position={[1.8, -0.1, 0]} rotation={[0, 0, 0.4]}>
-          <capsuleGeometry args={[0.08, 0.4, 8, 16]} />
-          <EnvMaterial color="#7CFC00" />
-          <Stroke thickness={0.04} />
-       </mesh>
+       <group position={[-2.2, 0.2, 0]} rotation={[0, 0, -0.3]}>
+          <FallbackCapsule radius={0.08} length={0.5} color="#7CFC00" thickness={0.04} />
+       </group>
+       <group position={[1.8, -0.1, 0]} rotation={[0, 0, 0.4]}>
+          <FallbackCapsule radius={0.08} length={0.4} color="#7CFC00" thickness={0.04} />
+       </group>
     </group>
   );
 }

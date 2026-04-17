@@ -3,7 +3,6 @@ import { Lock, Mail, Waves } from 'lucide-react-native'
 import React, { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   Dimensions,
   KeyboardAvoidingView,
@@ -16,6 +15,7 @@ import {
   ScrollView,
 } from 'react-native'
 import { supabase } from '../services/supabase'
+import { useAlert } from '../components/ui/Alert'
 
 const { width, height } = Dimensions.get('window')
 
@@ -175,20 +175,22 @@ export default function LoginScreen() {
     ]).start()
   }, [])
 
+  const { alert } = useAlert()
+
   const handleLogin = async () => {
-    if (!email || !password) return Alert.alert('Atenção', 'Preencha todos os campos!')
+    if (!email || !password) return alert({ type: 'warning', title: 'Atenção', message: 'Preencha todos os campos!' })
     setLoading(true)
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) Alert.alert('Erro no Login', error.message)
+    if (error) alert({ type: 'error', title: 'Erro no Login', message: error.message })
     setLoading(false)
   }
 
   const handleSignUp = async () => {
-    if (!email || !password) return Alert.alert('Atenção', 'Preencha todos os campos!')
+    if (!email || !password) return alert({ type: 'warning', title: 'Atenção', message: 'Preencha todos os campos!' })
     setLoading(true)
     const { error } = await supabase.auth.signUp({ email, password })
-    if (error) Alert.alert('Erro no Cadastro', error.message)
-    else Alert.alert('✅ Conta criada!', 'Bem-vindo ao Segredos do Mar!')
+    if (error) alert({ type: 'error', title: 'Erro no Cadastro', message: error.message })
+    else alert({ type: 'success', title: '✅ Conta criada!', message: 'Bem-vindo ao Segredos do Mar!' })
     setLoading(false)
   }
 

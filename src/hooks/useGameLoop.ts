@@ -6,7 +6,7 @@ export const useGameLoop = () => {
   const lastTimeRef = useRef(lastSaved || Date.now());
 
   useEffect(() => {
-    // Runs once a second to update slow-moving stats (Hunger, Health, Growth, Cloud Sync via debounce)
+    // Runs once a second to update slow-moving stats
     const loopInterval = setInterval(() => {
       const now = Date.now();
       const dt = now - lastTimeRef.current;
@@ -18,11 +18,15 @@ export const useGameLoop = () => {
       const state = useGameStore.getState();
       const fishes = [...state.fishes];
       let hasUpdates = false;
+      
+      const deaths: string[] = [];
 
       // Rates (scaled by simDt which is in ms)
-      const hungerDropRate = 1 / 2000;
-      const baseGrowthRate = 1 / 20000;
-      const hourlyHealthDropRate = (100 / (3 * 3600 * 1000)); // 3 hours to drop 100 health
+      const H_12_MS = 12 * 3600 * 1000;
+      const H_24_MS = 24 * 3600 * 1000;
+      const hungerDropRate = 100 / H_12_MS; // Drops 100 hunger in 12 hours
+      const healthDropRate = 100 / H_12_MS; // Drops 100 health in 12 hours (starts when hunger is 0)
+      const baseGrowthRate = 100 / H_24_MS; // Grows 100 units in 24 hours
 
       for (let i = 0; i < fishes.length; i++) {
         let fish = { ...fishes[i] };
@@ -54,7 +58,7 @@ export const useGameLoop = () => {
         }
 
         if (timeAtZeroHunger > 0) {
-          const healthDrop = hourlyHealthDropRate * timeAtZeroHunger;
+          const healthDrop = healthDropRate * timeAtZeroHunger;
           const newHealth = Math.max(0, (fish.health ?? 100) - healthDrop);
           if (newHealth !== fish.health) {
              fish.health = newHealth;
@@ -62,7 +66,7 @@ export const useGameLoop = () => {
           }
           
           if (fish.health === 0) {
-             setTimeout(() => useGameStore.getState().killFish(fish.id), 0);
+             deaths.push(fish.id);
              continue; // Rip
           }
         } else {
@@ -91,27 +95,23 @@ export const useGameLoop = () => {
            }
         }
 
-        // --- Coin System ---
-        // Only process coin generation for normal game loop ticks, skip if generating massive offline time
-        if (dt < 5000 && fish.happiness > 70 && fish.stage === 'adult' && Math.random() < 0.06) {
-           const coinId = 'coin_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
-           const coinValue = 10 + Math.floor(fish.happiness / 10);
-           const coinPos = { x: (Math.random() - 0.5) * 16, y: 5, z: (Math.random() - 0.5) * 4 };
-           useGameStore.getState().spawnCoin({ id: coinId, value: coinValue, position: coinPos });
-        }
-
         if (fishChanged) {
            fishes[i] = fish;
            hasUpdates = true;
         }
       }
 
+      const latestState = useGameStore.getState();
+      if (deaths.length > 0) {
+         deaths.forEach(id => latestState.killFish(id));
+      }
+      
       if (hasUpdates) {
-         useGameStore.getState().updateFishes(() => fishes);
+         latestState.updateFishes(() => fishes);
       }
 
     }, 1000); // 1 second interval
 
     return () => clearInterval(loopInterval);
-  }, [lastSaved]);
+  }, []);
 }

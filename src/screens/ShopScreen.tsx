@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
 import {
-  Alert,
   Animated,
   Platform,
   ScrollView,
@@ -16,10 +15,10 @@ import { createFish } from '../entities/createFish'
 import { fishService } from '../services/fishService'
 import { useGameStore } from '../store/useGameStore'
 
-// Módulos UI Importados
 import { ShopCard } from '../components/ui/Cards'
 import { TabBar } from '../components/ui/Buttons'
 import { BalancePill } from '../components/ui/Stats'
+import { useAlert } from '../components/ui/Alert'
 
 type Tab = 'shop' | 'food' | 'cemetery'
 
@@ -39,14 +38,16 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
     { id: 'cemetery', icon: <Skull size={15} />, label: 'Necrotério', accent: '#A855F7' },
   ]
 
+  const { alert } = useAlert()
+
   const buyFood = (price: number, amount: number) => {
     if (coins >= price) {
       addCoins(-price)
       addFood(amount)
       incrementStat('buy_food', 1)
-      Alert.alert('✅ Comprado!', `${amount} porções de ração adicionadas!`)
+      alert({ type: 'success', title: '✅ Comprado!', message: `${amount} porções de ração adicionadas!` })
     } else {
-      Alert.alert('❌ Saldo insuficiente', 'Você não tem moedas suficientes!')
+      alert({ type: 'error', title: '❌ Saldo insuficiente', message: 'Você não tem moedas suficientes!' })
     }
   }
 
@@ -58,13 +59,13 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
       if (data) {
         addFish(data)
         incrementStat('buy_fish', 1)
-        Alert.alert('🎉 Comprado!', `Seu ${species} filhote já está no aquário!`)
+        alert({ type: 'success', title: '🎉 Comprado!', message: `Seu ${species} filhote já está no aquário!` })
       } else {
         addCoins(price)
-        Alert.alert('Erro', 'Não foi possível salvar. Tente novamente.')
+        alert({ type: 'error', title: 'Erro', message: 'Não foi possível salvar. Tente novamente.' })
       }
     } else {
-      Alert.alert('❌ Saldo insuficiente', 'Você não tem moedas suficientes!')
+      alert({ type: 'error', title: '❌ Saldo insuficiente', message: 'Você não tem moedas suficientes!' })
     }
   }
 
@@ -72,9 +73,9 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
     const cost = ghost.species === 'clownfish' ? 25 : 75
     if (coins >= cost) {
       reviveFish(ghost.id, cost)
-      Alert.alert('✨ Milagre!', 'Peixe ressuscitado com sucesso!')
+      alert({ type: 'success', title: '✨ Milagre!', message: 'Peixe ressuscitado com sucesso!' })
     } else {
-      Alert.alert('❌ Saldo insuficiente', 'Você não tem moedas suficientes!')
+      alert({ type: 'error', title: '❌ Saldo insuficiente', message: 'Você não tem moedas suficientes!' })
     }
   }
 

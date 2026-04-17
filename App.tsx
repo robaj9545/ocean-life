@@ -10,6 +10,7 @@ import { calculateOfflineProgress } from './src/utils/time'
 
 import AquariumScreen from './src/screens/AquariumScreen'
 import LoginScreen from './src/screens/LoginScreen'
+import { AlertProvider } from './src/components/ui/Alert'
 
 export default function App() {
   const [session, setSession] = useState<any>(null)
@@ -86,12 +87,14 @@ export default function App() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#002244' }}>
-      {session && session.user ? (
-        <AquariumScreen />
-      ) : (
-        <LoginScreen />
-      )}
-    </View>
+    <AlertProvider>
+      <View style={{ flex: 1, backgroundColor: '#002244' }}>
+        {session && session.user ? (
+          <AquariumScreen />
+        ) : (
+          <LoginScreen />
+        )}
+      </View>
+    </AlertProvider>
   )
 }
