@@ -36,18 +36,20 @@ export default function AquariumScene3D({ setSelectedFish, hungryRefs }: Aquariu
       <OrthographicCamera makeDefault position={[0, 0, 10]} zoom={55} />
       <ResponsiveCamera />
       
-      <group>
-        <Environment3D />
-      </group>
+      <React.Suspense fallback={null}>
+        <group>
+          <Environment3D />
+        </group>
 
-      {fishes.map((fish, index) => (
-        <Fish3D 
-          key={`${fish.id}_${index}`} 
-          fish={fish} 
-          setSelectedFish={setSelectedFish} 
-          hungryRefs={hungryRefs}
-        />
-      ))}
+        {fishes.map((fish, index) => (
+          <Fish3D 
+            key={`${fish.id}_${index}`} 
+            fish={fish} 
+            setSelectedFish={setSelectedFish} 
+            hungryRefs={hungryRefs}
+          />
+        ))}
+      </React.Suspense>
     </Canvas>
   );
 }
