@@ -418,16 +418,19 @@ const StylizedStarfish = ({ position, rotation = [0,0,0], scale = [1,1,1], map }
 const StylizedShell = ({ position, rotation = [0,0,0], scale = [1,1,1], map }: any) => {
   return (
     <group position={position} rotation={rotation} scale={scale}>
-      <mesh position={[0, 0, 0]} rotation={[0.4, 0, 0]} scale={[1, 0.4, 1.2]}>
-        <sphereGeometry args={[0.5, 32, 16, 0, Math.PI]} />
-        <EnvMaterial color="#FFB6C1" roughness={0.6} map={map} />
-        <Stroke thickness={0.05} />
-      </mesh>
-      <mesh position={[0, -0.05, 0.2]} rotation={[-0.4, 0, 0]} scale={[1, 0.3, 1.2]}>
-        <sphereGeometry args={[0.5, 32, 16, 0, Math.PI]} />
-        <EnvMaterial color="#FFF0F5" roughness={0.6} map={map} />
-        <Stroke thickness={0.05} />
-      </mesh>
+      {/* Rigid internal correction to always lay flat on the ground */}
+      <group rotation={[-Math.PI / 2, 0, 0]}>
+        <mesh position={[0, 0, 0]} rotation={[0.3, 0, 0]} scale={[1, 0.4, 1.2]}>
+          <sphereGeometry args={[0.5, 32, 16, 0, Math.PI]} />
+          <EnvMaterial color="#FFB6C1" roughness={0.6} map={map} />
+          <Stroke thickness={0.05} />
+        </mesh>
+        <mesh position={[0, -0.05, 0.2]} rotation={[-0.3, 0, 0]} scale={[1, 0.3, 1.2]}>
+          <sphereGeometry args={[0.5, 32, 16, 0, Math.PI]} />
+          <EnvMaterial color="#FFF0F5" roughness={0.6} map={map} />
+          <Stroke thickness={0.05} />
+        </mesh>
+      </group>
     </group>
   );
 };
@@ -539,15 +542,15 @@ export default function Environment3D() {
         <StylizedCrab position={[-1.0, 0, 1.5]} map={texCrab} />
         <StylizedCrab position={[5.0, 0, 1.0]} map={texCrab} />
         
-        <StylizedStarfish position={[-3.5, getSandHeight(-3.5, 0.5) + 0.1, 0.5]} rotation={[-1.5, 0, 0.5]} scale={[0.6, 0.6, 0.6]} map={texStarfish} />
-        <StylizedStarfish position={[3.0, getSandHeight(3.0, -2.5) + 0.1, -2.5]} rotation={[-0.8, 0, 0.4]} scale={[0.4, 0.4, 0.4]} map={texStarfish} />
+        <StylizedStarfish position={[-3.5, getSandHeight(-3.5, 0.5) + 0.05, 0.5]} rotation={[0.1, 1.5, 0]} scale={[0.6, 0.6, 0.6]} map={texStarfish} />
+        <StylizedStarfish position={[3.0, getSandHeight(3.0, -2.5) + 0.02, -2.5]} rotation={[0, -0.8, 0.1]} scale={[0.4, 0.4, 0.4]} map={texStarfish} />
 
         <StylizedJellyfish position={[-6.0, getSandHeight(-6.0, -1.0) + 3.0, -1.0]} scale={[0.6, 0.6, 0.6]} map={texJellyfish} />
         <StylizedJellyfish position={[4.0, getSandHeight(4.0, -2.0) + 4.0, -2.0]} scale={[0.5, 0.5, 0.5]} map={texJellyfish} />
 
-        <StylizedShell position={[-1.5, getSandHeight(-1.5, 2.0), 2.0]} rotation={[-0.2, 0.5, 0]} scale={[0.4, 0.4, 0.4]} map={texShell} />
-        <StylizedShell position={[2.5, getSandHeight(2.5, 1.5), 1.5]} rotation={[0.1, -0.8, 0]} scale={[0.5, 0.5, 0.5]} map={texShell} />
-        <StylizedShell position={[-5.0, getSandHeight(-5.0, 1.0), 1.0]} rotation={[0.0, 1.2, 0.2]} scale={[0.3, 0.3, 0.3]} map={texShell} />
+        <StylizedShell position={[-1.5, getSandHeight(-1.5, 2.0) + 0.1, 2.0]} rotation={[-0.1, 0.2, 0.1]} scale={[0.4, 0.4, 0.4]} map={texShell} />
+        <StylizedShell position={[2.5, getSandHeight(2.5, 1.5) + 0.1, 1.5]} rotation={[0, -1.0, 0]} scale={[0.5, 0.5, 0.5]} map={texShell} />
+        <StylizedShell position={[-5.0, getSandHeight(-5.0, 1.0) + 0.05, 1.0]} rotation={[0.2, 2.0, 0]} scale={[0.3, 0.3, 0.3]} map={texShell} />
       </group>
 
     </group>
