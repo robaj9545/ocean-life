@@ -243,6 +243,149 @@ const StylizedChest = ({ position, map }: any) => {
   );
 };
 
+// Animated Jellyfish
+const StylizedJellyfish = ({ position, map }: any) => {
+  const ref = useRef<THREE.Group>(null);
+  const tentaclesRef = useRef<THREE.Group>(null);
+  
+  useFrame((state) => {
+    if (ref.current) {
+      // Bouncy vertical movement
+      ref.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 1.5) * 0.8;
+      // Rotation
+      ref.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.5;
+    }
+    if (tentaclesRef.current) {
+      // Tentacles swaying
+      tentaclesRef.current.children.forEach((tentacle, i) => {
+         tentacle.rotation.x = Math.sin(state.clock.elapsedTime * 2 + i) * 0.2;
+         tentacle.rotation.z = Math.cos(state.clock.elapsedTime * 2 + i) * 0.2;
+      });
+    }
+  });
+
+  return (
+    <group ref={ref} position={position}>
+       {/* Dome */}
+       <mesh scale={[1.2, 1.0, 1.2]}>
+         <sphereGeometry args={[0.6, 32, 16, 0, Math.PI * 2, 0, Math.PI/2]} />
+         <EnvMaterial color="#00FFFF" transparent opacity={0.7} metalness={0.5} roughness={0.1} map={map} />
+         <Stroke thickness={0.03} color="#008B8B" />
+       </mesh>
+       <mesh scale={[1, 0.8, 1]} position={[0, -0.05, 0]}>
+         <sphereGeometry args={[0.55, 32, 16, 0, Math.PI * 2, 0, Math.PI/2]} />
+         <EnvMaterial color="#E0FFFF" transparent opacity={0.6} map={map} />
+       </mesh>
+       {/* Tentacles */}
+       <group ref={tentaclesRef}>
+         {[...Array(6)].map((_, i) => {
+           const a = (i * Math.PI * 2) / 6;
+           return (
+             <group key={i} position={[Math.cos(a)*0.3, -0.3, Math.sin(a)*0.3]}>
+                <TaperedTube radiusTop={0.06} radiusBottom={0.01} length={1.2} color="#E0FFFF" map={map} thickness={0.02} />
+             </group>
+           )
+         })}
+       </group>
+    </group>
+  );
+}
+
+// Stylized Crab Walking gently
+const StylizedCrab = ({ position, map }: any) => {
+  const ref = useRef<THREE.Group>(null);
+  useFrame((state) => {
+    if(ref.current) {
+       // Crabs walk sideways! Let's make it walk back and forth.
+       ref.current.position.x = position[0] + Math.sin(state.clock.elapsedTime * 0.8) * 1.5;
+       // Bobbing
+       ref.current.position.y = position[1] + Math.abs(Math.sin(state.clock.elapsedTime * 4)) * 0.1;
+       // Arm waving
+       const leftClaw = ref.current.children[3];
+       const rightClaw = ref.current.children[4];
+       leftClaw.rotation.z = Math.sin(state.clock.elapsedTime * 2) * 0.2;
+       rightClaw.rotation.z = -Math.sin(state.clock.elapsedTime * 2.2) * 0.2;
+    }
+  });
+
+  return (
+    <group ref={ref} position={position}>
+       {/* Body */}
+       <mesh scale={[1.2, 0.6, 0.9]} position={[0, 0.3, 0]}>
+         <icosahedronGeometry args={[0.5, 1]} />
+         <EnvMaterial color="#DC143C" roughness={0.7} map={map} flatShading={true} />
+         <Stroke thickness={0.04} />
+       </mesh>
+       {/* Eyes */}
+       <mesh position={[-0.2, 0.7, 0.35]}>
+          <cylinderGeometry args={[0.04, 0.04, 0.3]} />
+          <EnvMaterial color="#DC143C" />
+          <mesh position={[0, 0.2, 0.05]}><sphereGeometry args={[0.1, 16, 16]} /><EnvMaterial color="#ffffff" roughness={0.2} /><mesh position={[0,0,0.08]}><sphereGeometry args={[0.04]} /><meshBasicMaterial color="#000" /></mesh></mesh>
+       </mesh>
+       <mesh position={[0.2, 0.7, 0.35]}>
+          <cylinderGeometry args={[0.04, 0.04, 0.3]} />
+          <EnvMaterial color="#DC143C" />
+          <mesh position={[0, 0.2, 0.05]}><sphereGeometry args={[0.1, 16, 16]} /><EnvMaterial color="#ffffff" roughness={0.2} /><mesh position={[0,0,0.08]}><sphereGeometry args={[0.04]} /><meshBasicMaterial color="#000" /></mesh></mesh>
+       </mesh>
+       {/* Claws */}
+       <group position={[-0.6, 0.4, 0.4]} rotation={[0, 0.5, 0.4]}>
+          <TaperedTube radiusTop={0.15} radiusBottom={0.05} length={0.6} color="#DC143C" map={map} />
+       </group>
+       <group position={[0.6, 0.4, 0.4]} rotation={[0, -0.5, -0.4]}>
+          <TaperedTube radiusTop={0.2} radiusBottom={0.05} length={0.8} color="#B22222" map={map} />
+       </group>
+    </group>
+  );
+};
+
+// Stylized Starfish
+const StylizedStarfish = ({ position, rotation = [0,0,0], scale = [1,1,1], map }: any) => {
+  const ref = useRef<THREE.Group>(null);
+  useFrame((state) => {
+    if(ref.current) {
+      ref.current.children.forEach((child, i) => {
+        if(i > 0) child.rotation.x = Math.sin(state.clock.elapsedTime * 0.5 + i) * 0.1;
+      });
+    }
+  });
+  return (
+    <group ref={ref} position={position} rotation={rotation} scale={scale}>
+      <mesh scale={[1, 0.3, 1]}>
+        <sphereGeometry args={[0.3, 16, 16]} />
+        <EnvMaterial color="#FF4500" roughness={0.8} map={map} />
+      </mesh>
+      {[0, 1, 2, 3, 4].map((i) => {
+        const angle = (i * Math.PI * 2) / 5;
+        return (
+          <group key={i} rotation={[0, angle, 0]}>
+             <group position={[0, 0, 0.3]} rotation={[1.57, 0, 0]}>
+                <TaperedTube radiusTop={0.04} radiusBottom={0.2} length={0.8} color="#FF6347" map={map} thickness={0.03} />
+             </group>
+          </group>
+        );
+      })}
+    </group>
+  );
+};
+
+// Stylized Shell
+const StylizedShell = ({ position, rotation = [0,0,0], scale = [1,1,1], map }: any) => {
+  return (
+    <group position={position} rotation={rotation} scale={scale}>
+      <mesh position={[0, 0, 0]} rotation={[0.4, 0, 0]} scale={[1, 0.4, 1.2]}>
+        <sphereGeometry args={[0.5, 32, 16, 0, Math.PI]} />
+        <EnvMaterial color="#FFB6C1" roughness={0.6} map={map} />
+        <Stroke thickness={0.05} />
+      </mesh>
+      <mesh position={[0, -0.05, 0.2]} rotation={[-0.4, 0, 0]} scale={[1, 0.3, 1.2]}>
+        <sphereGeometry args={[0.5, 32, 16, 0, Math.PI]} />
+        <EnvMaterial color="#FFF0F5" roughness={0.6} map={map} />
+        <Stroke thickness={0.05} />
+      </mesh>
+    </group>
+  );
+};
+
 // Animated Rising Bubbles
 const Bubbles = () => {
   const count = 25;
@@ -310,10 +453,14 @@ export default function Environment3D() {
   const texRock = useTexture(require('../../assets/textures/rock.png'));
   const texWood = useTexture(require('../../assets/textures/wood.png'));
   const texCoral = useTexture(require('../../assets/textures/coral.png'));
+  const texShell = useTexture(require('../../assets/textures/shell.png'));
+  const texCrab = useTexture(require('../../assets/textures/crab.png'));
+  const texStarfish = useTexture(require('../../assets/textures/starfish.png'));
+  const texJellyfish = useTexture(require('../../assets/textures/jellyfish.png'));
 
   // Setup texture wrapping to allow repetition in large meshes
   useMemo(() => {
-    [texSand, texRock, texWood, texCoral].forEach(tex => {
+    [texSand, texRock, texWood, texCoral, texShell, texCrab, texStarfish, texJellyfish].forEach(tex => {
        if(tex) {
          tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
        }
@@ -338,8 +485,23 @@ export default function Environment3D() {
         <WavySandFloor map={texSand} />
         <StylizedChest position={[3.5, -5.2, -1]} map={texWood} />
         <CartoonRocks position={[-4.0, -4.5, -1.5]} map={texRock} />
+        <CartoonRocks position={[7.0, -4.5, -1.0]} map={texRock} />
         <StylizedCoralCluster position={[-2.5, -4.5, -2.5]} scale={[0.8, 0.8, 0.8]} map={texCoral} />
         <StylizedCoralCluster position={[5.5, -4.8, -2.5]} scale={[1.2, 1.2, 1.2]} mirror={true} map={texCoral} />
+        
+        {/* New 3D Creatures (Y positions raised to float perfectly ON the sand) */}
+        <StylizedCrab position={[-1.0, -5.6, 1.0]} map={texCrab} />
+        <StylizedCrab position={[5.0, -5.6, -0.5]} map={texCrab} />
+        
+        <StylizedStarfish position={[-3.5, -5.6, 0.5]} rotation={[-1.5, 0, 0.5]} scale={[1.2, 1.2, 1.2]} map={texStarfish} />
+        <StylizedStarfish position={[3.0, -5.6, -2.5]} rotation={[-0.8, 0, 0.4]} scale={[0.8, 0.8, 0.8]} map={texStarfish} />
+
+        <StylizedJellyfish position={[-6.0, -2.0, -1.0]} map={texJellyfish} />
+        <StylizedJellyfish position={[4.0, -1.0, -2.0]} map={texJellyfish} />
+
+        <StylizedShell position={[-1.5, -5.8, 2.0]} rotation={[-0.2, 0.5, 0]} scale={[0.6, 0.6, 0.6]} map={texShell} />
+        <StylizedShell position={[2.5, -5.8, 1.5]} rotation={[0.1, -0.8, 0]} scale={[0.8, 0.8, 0.8]} map={texShell} />
+        <StylizedShell position={[-5.0, -5.8, 1.0]} rotation={[0.0, 1.2, 0.2]} scale={[0.5, 0.5, 0.5]} map={texShell} />
       </group>
 
     </group>
