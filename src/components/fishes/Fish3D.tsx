@@ -4,6 +4,16 @@ import { useFrame, useThree } from '@react-three/fiber';
 import React, { useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { FishEntity, useGameStore } from '../../store/useGameStore';
+import { getSandHeight } from '../scene/Environment3D';
+
+// Scenery collision mapping (absolute world coordinates accounting for Environment3D group offsets)
+const SCENERY_OBSTACLES = [
+  { x: 3.5, y: -3.1, z: -1.0, r: 1.5 },   // Treasure Chest
+  { x: -4.0, y: -3.0, z: -1.5, r: 1.8 },  // Dark Rock Left
+  { x: 7.0, y: -3.0, z: -1.0, r: 1.6 },   // Dark Rock Right
+  { x: -2.5, y: -3.0, z: -2.5, r: 1.2 },  // Coral Left
+  { x: 5.5, y: -2.7, z: -2.5, r: 1.6 },   // Coral Right
+];
 
 interface Fish3DProps {
   fish: FishEntity;
@@ -78,6 +88,42 @@ export default function Fish3D({ fish, setSelectedFish, hungryRefs }: Fish3DProp
     groupRef.current.position.lerp(targetPos, currentSpeed);
     // More natural, slower vertical drifting
     groupRef.current.position.y += Math.sin(time * 1.2 + speedScale.current * 10) * (delta * 0.08);
+
+    // --- ROBUST PHYSICS ENGINE (Collision Avoidance) ---
+    const avoidanceForce = new THREE.Vector3();
+    
+    // 1. Solid Static Objects Avoidance (Rocks, Corals, Chest)
+    SCENERY_OBSTACLES.forEach(obs => {
+        const obsPos = new THREE.Vector3(obs.x, obs.y, obs.z);
+        const dist = currentPos.distanceTo(obsPos);
+        const minAllowedDist = obs.r + (baseScale * 1.2); 
+        
+        if (dist < minAllowedDist) {
+            // Apply a soft push-back force relative to penetration depth
+            const pushDir = currentPos.clone().sub(obsPos).normalize();
+            const pushIntensity = (minAllowedDist - dist) * 0.2;
+            avoidanceForce.add(pushDir.multiplyScalar(pushIntensity));
+            
+            // Deflect path logic so fish swims AROUND it
+            targetPos.add(pushDir.multiplyScalar(1.0));
+        }
+    });
+
+    // 2. Continuous Ground Collision (Wavy Sand Floor)
+    // Add 2.0 because the Environment3D parent group mounts at Y=2.0
+    const absoluteGroundY = getSandHeight(currentPos.x, currentPos.z) + 2.0;
+    const bottomPadding = baseScale * 1.2; 
+    
+    if (currentPos.y < absoluteGroundY + bottomPadding) {
+       // Snap and push upwards smoothly to prevent burying
+       avoidanceForce.y += (absoluteGroundY + bottomPadding - currentPos.y) * 0.3;
+       // Reroute target upwards to simulate skimming the sand
+       targetPos.y += 0.5;
+    }
+
+    // Apply the resultant repulsion forces dynamically
+    groupRef.current.position.add(avoidanceForce);
+    // ----------------------------------------------------
 
     // 2D Projection for hunger icon overlay
     if (hungryRefs && hungryRefs.current) {
