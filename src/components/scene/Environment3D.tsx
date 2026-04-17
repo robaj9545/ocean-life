@@ -11,21 +11,35 @@ const Stroke = ({ thickness = 0.05, color = "#1a1a1a", angle }: { thickness?: nu
   <Outlines thickness={thickness} color={color} angle={angle} />
 );
 
-// Base Glossy/Toon Material for the environment objects
-const EnvMaterial = ({ color, roughness = 0.4, metalness = 0.1, ...props }: any) => (
+// Base Material
+const EnvMaterial = ({ color, roughness = 0.5, metalness = 0.1, flatShading = false, ...props }: any) => (
   <meshStandardMaterial 
     color={color} 
     roughness={roughness} 
     metalness={metalness} 
+    flatShading={flatShading}
     {...props} 
   />
 );
 
-const FallbackCapsule = ({ radius, length, color, thickness=0.05 }: any) => (
+// Stylized Tube with Tapering (Afunilamento - Shape Language)
+const TaperedTube = ({ radiusTop, radiusBottom, length, color, thickness=0.04 }: any) => (
   <group>
-    <mesh><cylinderGeometry args={[radius, radius, length, 16]} /><EnvMaterial color={color} /><Stroke thickness={thickness} /></mesh>
-    <mesh position={[0, length/2, 0]}><sphereGeometry args={[radius, 16, 16]} /><EnvMaterial color={color} /><Stroke thickness={thickness} /></mesh>
-    <mesh position={[0, -length/2, 0]}><sphereGeometry args={[radius, 16, 16]} /><EnvMaterial color={color} /><Stroke thickness={thickness} /></mesh>
+    {/* Main tapered body */}
+    <mesh>
+      <cylinderGeometry args={[radiusTop, radiusBottom, length, 16]} />
+      <EnvMaterial color={color} roughness={0.6} />
+      <Stroke thickness={thickness} color="#1a1a1a" />
+    </mesh>
+    {/* Rounded caps to soften edges (Bevel/Smoothing logic) */}
+    <mesh position={[0, length/2, 0]}>
+      <sphereGeometry args={[radiusTop, 16, 16]} />
+      <EnvMaterial color={color} roughness={0.6} />
+    </mesh>
+    <mesh position={[0, -length/2, 0]}>
+      <sphereGeometry args={[radiusBottom, 16, 16]} />
+      <EnvMaterial color={color} roughness={0.6} />
+    </mesh>
   </group>
 );
 
@@ -105,54 +119,54 @@ const StylizedCoralCluster = ({ position, scale = [1,1,1], mirror = false }: any
         <Stroke thickness={0.05} />
       </mesh>
       
-      {/* Orange Tubes (using capsule for cuteness) */}
+      {/* Orange Tubes - with Tapering toward the top */}
       <group position={[-0.5 * scale[0], 1.2 * scale[1], -0.5 * scale[2]]} rotation={[0, 0, 0.2]} scale={scale}>
-         <FallbackCapsule radius={0.25} length={1.5} color="#FF8C00" />
+         <TaperedTube radiusTop={0.15} radiusBottom={0.35} length={1.8} color="#FF8C00" />
       </group>
       <group position={[0.4 * scale[0], 1.5 * scale[1], -0.2 * scale[2]]} rotation={[0.2, 0, -0.2]} scale={scale}>
-         <FallbackCapsule radius={0.2} length={2} color="#FFA500" />
+         <TaperedTube radiusTop={0.1} radiusBottom={0.25} length={2.2} color="#FFA500" />
       </group>
 
-      {/* Pink Anemone Fingers */}
+      {/* Pink Anemone Fingers - smaller, tapered */}
       <group position={[1.2 * scale[0], 0.8 * scale[1], 0.5 * scale[2]]} rotation={[0, 0, -0.5]} scale={scale}>
-         <FallbackCapsule radius={0.15} length={1} color="#FF69B4" />
+         <TaperedTube radiusTop={0.08} radiusBottom={0.2} length={1.2} color="#FF69B4" />
       </group>
       <group position={[1.5 * scale[0], 0.5 * scale[1], 0.2 * scale[2]]} rotation={[0.2, 0, -0.8]} scale={scale}>
-         <FallbackCapsule radius={0.12} length={0.8} color="#FFB6C1" />
+         <TaperedTube radiusTop={0.05} radiusBottom={0.15} length={0.9} color="#FFB6C1" />
       </group>
     </Float>
   );
 }
 
-// Cartoon Polished Rocks
+// Cartoon Polished Rocks - Using flatShading and precise geometry
 const CartoonRocks = ({ position }: any) => {
   return (
     <group position={position}>
-       {/* Big central rock (using dodecahedron for stylized faceted look) */}
-       <mesh position={[0, 0, 0]} scale={[1.5, 1.1, 1.3]} rotation={[0.2, 0.4, 0]}>
-         <dodecahedronGeometry args={[1.2, 1]} />
-         <EnvMaterial color="#4A90E2" roughness={0.5} />
-         <Stroke thickness={0.04} color="#1b416e" />
+       {/* Big central rock: Icosahedron + flatShading = Sharp Faceted Style like Sea of Thieves */}
+       <mesh position={[0, 0, 0]} scale={[1.8, 1.2, 1.5]} rotation={[0.2, 0.4, 0]}>
+         <icosahedronGeometry args={[1.2, 1]} />
+         <EnvMaterial color="#4A90E2" roughness={0.8} flatShading={true} />
+         <Stroke thickness={0.05} color="#1b416e" angle={Math.PI} />
        </mesh>
        {/* Side rock */}
-       <mesh position={[-1.4, -0.2, 0.5]} scale={[1.2, 0.9, 1.1]} rotation={[-0.2, 0.1, 0.5]}>
-         <dodecahedronGeometry args={[0.8, 1]} />
-         <EnvMaterial color="#5DADE2" roughness={0.5} />
-         <Stroke thickness={0.04} color="#1b416e" />
+       <mesh position={[-1.4, -0.2, 0.5]} scale={[1.3, 1.0, 1.2]} rotation={[-0.2, 0.1, 0.5]}>
+         <icosahedronGeometry args={[0.9, 0]} />
+         <EnvMaterial color="#5DADE2" roughness={0.8} flatShading={true} />
+         <Stroke thickness={0.06} color="#1b416e" angle={Math.PI} />
        </mesh>
        {/* Small foreground rock */}
-       <mesh position={[1.0, -0.4, 0.8]} scale={[1, 0.8, 1]} rotation={[0.1, -0.3, -0.2]}>
-         <dodecahedronGeometry args={[0.7, 1]} />
-         <EnvMaterial color="#3498DB" roughness={0.5} />
-         <Stroke thickness={0.04} color="#1b416e" />
+       <mesh position={[1.0, -0.4, 0.8]} scale={[1.2, 0.8, 1]} rotation={[0.1, -0.3, -0.2]}>
+         <icosahedronGeometry args={[0.7, 0]} />
+         <EnvMaterial color="#3498DB" roughness={0.8} flatShading={true} />
+         <Stroke thickness={0.06} color="#1b416e" angle={Math.PI} />
        </mesh>
        
-       {/* Tiny green shoots */}
+       {/* Tiny green shoots - Asymmetrical Tapered */}
        <group position={[-2.2, 0.2, 0]} rotation={[0, 0, -0.3]}>
-          <FallbackCapsule radius={0.08} length={0.5} color="#7CFC00" thickness={0.04} />
+          <TaperedTube radiusTop={0.02} radiusBottom={0.08} length={0.6} color="#7CFC00" thickness={0.04} />
        </group>
        <group position={[1.8, -0.1, 0]} rotation={[0, 0, 0.4]}>
-          <FallbackCapsule radius={0.08} length={0.4} color="#7CFC00" thickness={0.04} />
+          <TaperedTube radiusTop={0.03} radiusBottom={0.1} length={0.4} color="#7CFC00" thickness={0.04} />
        </group>
     </group>
   );
