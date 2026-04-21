@@ -116,76 +116,115 @@ const WavySandFloor = ({ map }: any) => {
   );
 };
 
+// Organic Wavy Coral Tentacle
+const WavyCoralTentacle = ({ radiusTop, radiusBottom, length, color, map, bendFrequency = 2, bendAmplitude = 0.2 }: any) => {
+  const geo = useMemo(() => {
+    const g = new THREE.CylinderGeometry(radiusTop, radiusBottom, length, 16, 16);
+    g.translate(0, length / 2, 0); // Origin at bottom
+    const pos = g.attributes.position;
+    for(let i=0; i<pos.count; i++) {
+       const y = pos.getY(i);
+       const progress = y / length;
+       const bendX = Math.sin(progress * Math.PI * bendFrequency) * bendAmplitude;
+       const bendZ = Math.cos(progress * Math.PI * bendFrequency * 1.5) * bendAmplitude * 0.5;
+       pos.setX(i, pos.getX(i) + bendX);
+       pos.setZ(i, pos.getZ(i) + bendZ);
+    }
+    g.computeVertexNormals();
+    return g;
+  }, [radiusTop, radiusBottom, length, bendFrequency, bendAmplitude]);
+
+  return (
+    <mesh geometry={geo}>
+      <EnvMaterial color={color} roughness={0.6} map={map} />
+      <Stroke thickness={0.04} color="#1a1a1a" />
+    </mesh>
+  );
+};
+
 // Match Image #2: Stunning Vibrant Glossy Corals
 const StylizedCoralCluster = ({ position, scale = [1,1,1], mirror = false, map }: any) => {
+  const baseGeo = useMemo(() => {
+    const geo = new THREE.SphereGeometry(1.2, 32, 32);
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const y = pos.getY(i);
+      const ny = y < -0.4 ? -0.4 : y;
+      const noise = Math.sin(pos.getX(i)*4) * Math.cos(pos.getZ(i)*4) * 0.1;
+      pos.setXYZ(i, pos.getX(i), ny + noise, pos.getZ(i));
+    }
+    geo.computeVertexNormals();
+    return geo;
+  }, []);
+
   return (
     <Float position={position} rotation={[0, mirror ? Math.PI : 0, 0]} speed={1.5} rotationIntensity={0.1} floatIntensity={0.2}>
-      {/* Base blobs */}
-      <mesh position={[0, 0, 0]} scale={scale}>
-        <sphereGeometry args={[1.2, 32, 32]} />
+      {/* Base blob (Single Mesh instead of 3) */}
+      <mesh position={[0, 0, 0]} scale={[1.2 * scale[0], 0.8 * scale[1], 1 * scale[2]]} geometry={baseGeo}>
         <EnvMaterial color="#FF1493" map={map} />
         <Stroke thickness={0.05} />
       </mesh>
-      <mesh position={[1 * scale[0], -0.2 * scale[1], 0]} scale={scale}>
-        <sphereGeometry args={[0.8, 32, 32]} />
-        <EnvMaterial color="#FF69B4" map={map} />
-        <Stroke thickness={0.05} />
-      </mesh>
-      <mesh position={[-0.8 * scale[0], -0.4 * scale[1], 0.5 * scale[2]]} scale={scale}>
-        <sphereGeometry args={[0.7, 32, 32]} />
-        <EnvMaterial color="#FF00FF" map={map} />
-        <Stroke thickness={0.05} />
-      </mesh>
       
-      {/* Orange Tubes - with Tapering toward the top */}
-      <group position={[-0.5 * scale[0], 1.2 * scale[1], -0.5 * scale[2]]} rotation={[0, 0, 0.2]} scale={scale}>
-         <TaperedTube radiusTop={0.15} radiusBottom={0.35} length={1.8} color="#FF8C00" map={map} />
+      {/* Organic Wavy Tubes */}
+      <group position={[-0.4 * scale[0], 0.5 * scale[1], -0.2 * scale[2]]} rotation={[0.2, 0, 0.2]} scale={scale}>
+         <WavyCoralTentacle radiusTop={0.1} radiusBottom={0.3} length={2.5} color="#FF8C00" map={map} bendFrequency={1.5} bendAmplitude={0.4} />
       </group>
-      <group position={[0.4 * scale[0], 1.5 * scale[1], -0.2 * scale[2]]} rotation={[0.2, 0, -0.2]} scale={scale}>
-         <TaperedTube radiusTop={0.1} radiusBottom={0.25} length={2.2} color="#FFA500" map={map} />
+      <group position={[0.4 * scale[0], 0.4 * scale[1], 0.1 * scale[2]]} rotation={[-0.1, 0, -0.3]} scale={scale}>
+         <WavyCoralTentacle radiusTop={0.08} radiusBottom={0.25} length={2.0} color="#FFA500" map={map} bendFrequency={2.0} bendAmplitude={0.3} />
       </group>
-
-      {/* Pink Anemone Fingers - smaller, tapered */}
-      <group position={[1.2 * scale[0], 0.8 * scale[1], 0.5 * scale[2]]} rotation={[0, 0, -0.5]} scale={scale}>
-         <TaperedTube radiusTop={0.08} radiusBottom={0.2} length={1.2} color="#FF69B4" map={map} />
-      </group>
-      <group position={[1.5 * scale[0], 0.5 * scale[1], 0.2 * scale[2]]} rotation={[0.2, 0, -0.8]} scale={scale}>
-         <TaperedTube radiusTop={0.05} radiusBottom={0.15} length={0.9} color="#FFB6C1" map={map} />
+      <group position={[0.8 * scale[0], 0.2 * scale[1], 0.4 * scale[2]]} rotation={[0.4, 0, -0.5]} scale={scale}>
+         <WavyCoralTentacle radiusTop={0.05} radiusBottom={0.2} length={1.5} color="#FF69B4" map={map} bendFrequency={2.5} bendAmplitude={0.2} />
       </group>
     </Float>
   );
 }
 
-// Cartoon Polished Rocks - Using flatShading and precise geometry
+// Cartoon Polished Rocks - Organic Single Mesh
 const CartoonRocks = ({ position, map }: any) => {
+  const rockGeo1 = useMemo(() => {
+    const geo = new THREE.SphereGeometry(1.2, 32, 32);
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+       const x = pos.getX(i);
+       const y = pos.getY(i);
+       const z = pos.getZ(i);
+       const ny = y < -0.6 ? -0.6 : y; // Flatten bottom
+       const noise = Math.sin(x * 3) * Math.cos(y * 3) * Math.sin(z * 3) * 0.15;
+       pos.setXYZ(i, x + noise, ny + noise, z + noise);
+    }
+    geo.computeVertexNormals();
+    return geo;
+  }, []);
+
+  const rockGeo2 = useMemo(() => {
+    const geo = new THREE.SphereGeometry(0.9, 32, 32);
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+       const x = pos.getX(i);
+       const y = pos.getY(i);
+       const z = pos.getZ(i);
+       const ny = y < -0.4 ? -0.4 : y; 
+       const noise = Math.sin(x * 4) * Math.cos(y * 4) * Math.sin(z * 4) * 0.12;
+       pos.setXYZ(i, x + noise, ny + noise, z + noise);
+    }
+    geo.computeVertexNormals();
+    return geo;
+  }, []);
+
   return (
     <group position={position} scale={[0.7, 0.7, 0.7]}>
-       {/* Big central rock: Icosahedron + flatShading = Sharp Faceted Style like Sea of Thieves */}
-       <mesh position={[0, 0, 0]} scale={[1.8, 1.2, 1.5]} rotation={[0.2, 0.4, 0]}>
-         <icosahedronGeometry args={[1.2, 1]} />
-         <EnvMaterial color="#4A90E2" roughness={0.8} flatShading={true} map={map} />
+       <mesh position={[0, -0.2, 0]} scale={[1.8, 1.2, 1.5]} rotation={[0.2, 0.4, 0]} geometry={rockGeo1}>
+         <EnvMaterial color="#4A90E2" roughness={0.8} map={map} />
+         <Stroke thickness={0.04} color="#1b416e" angle={Math.PI} />
+       </mesh>
+       <mesh position={[-1.4, -0.4, 0.5]} scale={[1.3, 1.0, 1.2]} rotation={[-0.2, 0.1, 0.5]} geometry={rockGeo2}>
+         <EnvMaterial color="#5DADE2" roughness={0.8} map={map} />
          <Stroke thickness={0.05} color="#1b416e" angle={Math.PI} />
        </mesh>
-       {/* Side rock */}
-       <mesh position={[-1.4, -0.2, 0.5]} scale={[1.3, 1.0, 1.2]} rotation={[-0.2, 0.1, 0.5]}>
-         <icosahedronGeometry args={[0.9, 0]} />
-         <EnvMaterial color="#5DADE2" roughness={0.8} flatShading={true} map={map} />
-         <Stroke thickness={0.06} color="#1b416e" angle={Math.PI} />
+       <mesh position={[1.0, -0.6, 0.8]} scale={[1.2, 0.8, 1]} rotation={[0.1, -0.3, -0.2]} geometry={rockGeo2}>
+         <EnvMaterial color="#3498DB" roughness={0.8} map={map} />
+         <Stroke thickness={0.05} color="#1b416e" angle={Math.PI} />
        </mesh>
-       {/* Small foreground rock */}
-       <mesh position={[1.0, -0.4, 0.8]} scale={[1.2, 0.8, 1]} rotation={[0.1, -0.3, -0.2]}>
-         <icosahedronGeometry args={[0.7, 0]} />
-         <EnvMaterial color="#3498DB" roughness={0.8} flatShading={true} map={map} />
-         <Stroke thickness={0.06} color="#1b416e" angle={Math.PI} />
-       </mesh>
-       
-       {/* Tiny green shoots - Asymmetrical Tapered */}
-       <group position={[-2.2, 0.2, 0]} rotation={[0, 0, -0.3]}>
-          <TaperedTube radiusTop={0.02} radiusBottom={0.08} length={0.6} color="#7CFC00" thickness={0.04} />
-       </group>
-       <group position={[1.8, -0.1, 0]} rotation={[0, 0, 0.4]}>
-          <TaperedTube radiusTop={0.03} radiusBottom={0.1} length={0.4} color="#7CFC00" thickness={0.04} />
-       </group>
     </group>
   );
 }
@@ -384,32 +423,52 @@ const StylizedCrab = ({ position, map }: any) => {
   );
 };
 
-// Stylized Starfish
+// Organic Starfish using ExtrudeGeometry
 const StylizedStarfish = ({ position, rotation = [0,0,0], scale = [1,1,1], map }: any) => {
+  const starGeo = useMemo(() => {
+    const shape = new THREE.Shape();
+    const outerRadius = 0.8;
+    const innerRadius = 0.35;
+    const spikes = 5;
+    for (let i = 0; i < spikes * 2; i++) {
+      const radius = i % 2 === 0 ? outerRadius : innerRadius;
+      const angle = (i / (spikes * 2)) * Math.PI * 2;
+      if (i === 0) shape.moveTo(Math.cos(angle) * radius, Math.sin(angle) * radius);
+      else shape.lineTo(Math.cos(angle) * radius, Math.sin(angle) * radius);
+    }
+    shape.closePath();
+    
+    const extrudeSettings = { depth: 0.15, bevelEnabled: true, bevelSegments: 4, steps: 1, bevelSize: 0.1, bevelThickness: 0.1 };
+    const geo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+    geo.center();
+    
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+       const x = pos.getX(i);
+       const y = pos.getY(i);
+       const z = pos.getZ(i);
+       // Add a soft curve so it rests nicely on the ground
+       const bend = (x*x + y*y) * 0.1;
+       pos.setZ(i, z - bend);
+    }
+    geo.computeVertexNormals();
+    return geo;
+  }, []);
+
   const ref = useRef<THREE.Group>(null);
   useFrame((state) => {
     if(ref.current) {
-      ref.current.children.forEach((child, i) => {
-        if(i > 0) child.rotation.x = Math.sin(state.clock.elapsedTime * 0.5 + i) * 0.1;
-      });
+       // Gentle breathing
+       ref.current.scale.z = scale[2] * (1 + Math.sin(state.clock.elapsedTime * 2) * 0.05);
     }
   });
+
   return (
     <group ref={ref} position={position} rotation={rotation} scale={scale}>
-      <mesh scale={[1, 0.3, 1]}>
-        <sphereGeometry args={[0.3, 16, 16]} />
-        <EnvMaterial color="#FF4500" roughness={0.8} map={map} />
-      </mesh>
-      {[0, 1, 2, 3, 4].map((i) => {
-        const angle = (i * Math.PI * 2) / 5;
-        return (
-          <group key={i} rotation={[0, angle, 0]}>
-             <group position={[0, 0, 0.3]} rotation={[1.57, 0, 0]}>
-                <TaperedTube radiusTop={0.04} radiusBottom={0.2} length={0.8} color="#FF6347" map={map} thickness={0.03} />
-             </group>
-          </group>
-        );
-      })}
+       <mesh geometry={starGeo} rotation={[-Math.PI / 2, 0, 0]}>
+         <EnvMaterial color="#FF4500" roughness={0.8} map={map} />
+         <Stroke thickness={0.03} color="#8B0000" />
+       </mesh>
     </group>
   );
 };

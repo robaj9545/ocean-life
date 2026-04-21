@@ -171,18 +171,11 @@ export default function Fish3D({ fish, setSelectedFish, hungryRefs }: Fish3DProp
   return (
     <group ref={groupRef} scale={[baseScale, baseScale, baseScale]} onPointerDown={(e) => { e.stopPropagation(); setSelectedFish(fish); }}>
       
-      {/* 1. Main Organic Body (Smoother Capsule Contour Fallback) */}
+      {/* 1. Main Organic Body (Single Mesh Pill-Shape) */}
       <group position={[0, 0, 0]} rotation={[0, 0, 1.57]} scale={[1.2, 1.4, 0.9]}>
         <mesh castShadow receiveShadow>
-            <cylinderGeometry args={[0.4, 0.4, 0.3, 32]} />
-            <GlossyMaterial color={bodyColor} />
-        </mesh>
-        <mesh castShadow receiveShadow position={[0, 0.15, 0]}>
-            <sphereGeometry args={[0.4, 32, 32]} />
-            <GlossyMaterial color={bodyColor} />
-        </mesh>
-        <mesh castShadow receiveShadow position={[0, -0.15, 0]}>
-            <sphereGeometry args={[0.4, 32, 32]} />
+            {/* CapsuleGeometry perfectly replaces the old Cylinder + 2 Spheres combination! */}
+            <capsuleGeometry args={[0.4, 0.3, 32, 32]} />
             <GlossyMaterial color={bodyColor} />
         </mesh>
       </group>
@@ -228,12 +221,13 @@ export default function Fish3D({ fish, setSelectedFish, hungryRefs }: Fish3DProp
       <mesh position={[0.45, -0.05, 0.35]}><sphereGeometry args={[0.08, 16, 16]} /><meshBasicMaterial color="#FF69B4" transparent opacity={0.6} /></mesh>
       <mesh position={[0.45, -0.05, -0.35]}><sphereGeometry args={[0.08, 16, 16]} /><meshBasicMaterial color="#FF69B4" transparent opacity={0.6} /></mesh>
 
-      {/* 5. Smooth Tail Fin - Fallback */}
+      {/* 5. Smooth Tail Fin - Single Capsule Mesh */}
       <mesh castShadow receiveShadow ref={tailRef} position={[-0.65, 0, 0]}>
          <group position={[-0.2, 0, 0]} scale={[0.8, 1.2, 0.2]}>
-           <mesh castShadow receiveShadow><cylinderGeometry args={[0.2, 0.2, 0.2, 16]} /><GlossyMaterial color={finColor} /></mesh>
-           <mesh castShadow receiveShadow position={[0, 0.1, 0]}><sphereGeometry args={[0.2, 16, 16]} /><GlossyMaterial color={finColor} /></mesh>
-           <mesh castShadow receiveShadow position={[0, -0.1, 0]}><sphereGeometry args={[0.2, 16, 16]} /><GlossyMaterial color={finColor} /></mesh>
+           <mesh castShadow receiveShadow>
+             <capsuleGeometry args={[0.2, 0.2, 16, 16]} />
+             <GlossyMaterial color={finColor} />
+           </mesh>
          </group>
       </mesh>
 
