@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, ActivityIndicator, LogBox } from 'react-native'
+import { View, Text, ActivityIndicator, LogBox, Platform, StatusBar, AppState } from 'react-native'
+import { StatusBar as ExpoStatusBar } from 'expo-status-bar'
+import * as NavigationBar from 'expo-navigation-bar'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { supabase } from './src/services/supabase'
 import { economyService } from './src/services/economyService'
@@ -7,19 +9,51 @@ import { fishService } from './src/services/fishService'
 import { statsService } from './src/services/statsService'
 import { useGameStore } from './src/store/useGameStore'
 import { calculateOfflineProgress } from './src/utils/time'
+import { Coins, Fish, Skull, Waves } from 'lucide-react-native'
 
 import AquariumScreen from './src/screens/AquariumScreen'
 import LoginScreen from './src/screens/LoginScreen'
 import { AlertProvider } from './src/components/ui/Alert'
+import { scale, fonts, spacing, radius, iconSize } from './src/utils/responsive'
 
 export default function App() {
   const [session, setSession] = useState<any>(null)
   const [isReady, setIsReady] = useState(false)
   const [offlineSummary, setOfflineSummary] = useState<{ coins: number; deaths: number; grown: number } | null>(null)
 
-  // Ignore multiple instances of Three.js warning usually caused by generic Expo setup
+  // ─── Immersive Mode: Hide system bars ──────────────────────────────────────
   useEffect(() => {
-    LogBox.ignoreLogs(['THREE.WARNING: Multiple instances of Three.js being imported.']);
+    const hideSystemBars = () => {
+      // Hide status bar on both platforms
+      StatusBar.setHidden(true, 'fade')
+      
+      // Hide Android navigation bar (bottom bar with back/home/recent)
+      if (Platform.OS === 'android') {
+        NavigationBar.setVisibilityAsync('hidden')
+      }
+    }
+
+    hideSystemBars()
+
+    // Re-hide bars when app returns from background (they reappear after multitasking)
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        hideSystemBars()
+      }
+    })
+
+    return () => subscription.remove()
+  }, [])
+
+  // Suppress non-actionable warnings (Three.js internals + edge-to-edge deprecations)
+  useEffect(() => {
+    LogBox.ignoreLogs([
+      'THREE.WARNING: Multiple instances of Three.js being imported.',
+      'THREE.THREE.Clock: This module has been deprecated',
+      'THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated',
+      '`setBehaviorAsync` is not supported',
+      '`setBackgroundColorAsync` is not supported',
+    ]);
   }, []);
 
   useEffect(() => {
@@ -113,8 +147,9 @@ export default function App() {
   if (!isReady) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#002244' }}>
+        <ExpoStatusBar hidden />
         <ActivityIndicator size="large" color="#00BFFF" />
-        <Text style={{ color: '#fff', marginTop: 15, fontWeight: 'bold' }}>Conectando Fundo do Mar...</Text>
+        <Text style={{ color: '#fff', marginTop: spacing.md, fontWeight: 'bold', fontSize: fonts.base }}>Conectando Fundo do Mar...</Text>
       </View>
     )
   }
@@ -122,6 +157,7 @@ export default function App() {
   return (
     <AlertProvider>
       <View style={{ flex: 1, backgroundColor: '#002244' }}>
+        <ExpoStatusBar hidden />
         {session && session.user ? (
           <>
             <AquariumScreen />
@@ -129,34 +165,46 @@ export default function App() {
             {offlineSummary && (
               <View style={{
                 position: 'absolute',
-                top: 80,
-                left: 20,
-                right: 20,
+                top: spacing.xxxl,
+                left: spacing.xl,
+                right: spacing.xl,
                 backgroundColor: 'rgba(0,30,60,0.95)',
-                borderRadius: 16,
-                padding: 16,
+                borderRadius: radius.lg,
+                padding: spacing.lg,
                 borderWidth: 1,
                 borderColor: 'rgba(0,229,255,0.3)',
                 zIndex: 999,
-                gap: 6,
+                gap: spacing.xs,
               }}>
-                <Text style={{ color: '#00E5FF', fontWeight: '900', fontSize: 14 }}>
-                  🌊 Enquanto você esteve fora...
-                </Text>
-                {offlineSummary.coins > 0 && (
-                  <Text style={{ color: '#FFD700', fontWeight: '700', fontSize: 12 }}>
-                    💰 +{offlineSummary.coins.toLocaleString()} moedas coletadas
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                  <Waves color="#00E5FF" size={iconSize.md} strokeWidth={2} />
+                  <Text style={{ color: '#00E5FF', fontWeight: '900', fontSize: fonts.base }}>
+                    Enquanto você esteve fora...
                   </Text>
+                </View>
+                {offlineSummary.coins > 0 && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+                    <Coins color="#FFD700" size={iconSize.sm} strokeWidth={2} />
+                    <Text style={{ color: '#FFD700', fontWeight: '700', fontSize: fonts.sm }}>
+                      +{offlineSummary.coins.toLocaleString()} moedas coletadas
+                    </Text>
+                  </View>
                 )}
                 {offlineSummary.grown > 0 && (
-                  <Text style={{ color: '#00E5A0', fontWeight: '700', fontSize: 12 }}>
-                    🐟 {offlineSummary.grown} peixe(s) cresceram para adulto!
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+                    <Fish color="#00E5A0" size={iconSize.sm} strokeWidth={2} />
+                    <Text style={{ color: '#00E5A0', fontWeight: '700', fontSize: fonts.sm }}>
+                      {offlineSummary.grown} peixe(s) cresceram para adulto!
+                    </Text>
+                  </View>
                 )}
                 {offlineSummary.deaths > 0 && (
-                  <Text style={{ color: '#FF6B6B', fontWeight: '700', fontSize: 12 }}>
-                    💀 {offlineSummary.deaths} peixe(s) morreram de fome...
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+                    <Skull color="#FF6B6B" size={iconSize.sm} strokeWidth={2} />
+                    <Text style={{ color: '#FF6B6B', fontWeight: '700', fontSize: fonts.sm }}>
+                      {offlineSummary.deaths} peixe(s) morreram de fome...
+                    </Text>
+                  </View>
                 )}
               </View>
             )}

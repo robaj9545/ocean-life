@@ -4,9 +4,31 @@
     "slug": "ocean-life",
     "version": "1.0.0",
     "orientation": "landscape",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "ios": {
-      "supportsTablet": true
-    }
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIStatusBarHidden": true,
+        "UIViewControllerBasedStatusBarAppearance": false
+      }
+    },
+    "android": {
+      "softwareKeyboardLayoutMode": "pan"
+    },
+    "androidStatusBar": {
+      "hidden": true,
+      "translucent": true,
+      "barStyle": "light-content"
+    },
+    "plugins": [
+      [
+        "expo-navigation-bar",
+        {
+          "position": "absolute",
+          "visibility": "hidden",
+          "legacyVisible": "hidden"
+        }
+      ]
+    ]
   }
 }
