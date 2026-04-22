@@ -21,6 +21,7 @@ export interface FishEntity {
   health?: number;
   deathTime?: number;
   dna?: any;
+  nickname?: string;
 }
 
 export interface GameState {
@@ -44,6 +45,8 @@ export interface GameState {
   killFish: (id: string) => void;
   reviveFish: (id: string, cost: number) => void;
   cleanupDeadFishes: () => void;
+  buyNicknameItem: () => void;
+  useNicknameItem: (fishId: string, nickname: string) => boolean;
   saveTimestamp: () => void;
   pushToCloud: () => void;
   
@@ -82,7 +85,7 @@ export const useGameStore = create<GameState>()(
     deadFishes: [],
     lastSaved: Date.now(),
     
-    stats: { feed: 0, breed: 0, buy_fish: 0, collect_coin: 0, buy_food: 0, revive: 0 },
+    stats: { feed: 0, breed: 0, buy_fish: 0, collect_coin: 0, buy_food: 0, revive: 0, nickname_items: 0 },
     claimedMissions: [],
     dailyProgress: {},
     lastDailyReset: Date.now(),
@@ -165,6 +168,29 @@ export const useGameStore = create<GameState>()(
       get().pushToCloud();
       return { lastSaved: Date.now() };
     }),
+
+    buyNicknameItem: () => {
+      const state = get();
+      if (state.coins >= 1000) {
+        state.addCoins(-1000);
+        state.incrementStat('nickname_items', 1);
+      }
+    },
+
+    useNicknameItem: (fishId, nickname) => {
+      let success = false;
+      set((state) => {
+        if ((state.stats.nickname_items || 0) > 0) {
+          const newFishes = state.fishes.map(f => f.id === fishId ? { ...f, nickname } : f);
+          const newStats = { ...state.stats, nickname_items: (state.stats.nickname_items || 0) - 1 };
+          success = true;
+          return { fishes: newFishes, stats: newStats };
+        }
+        return state;
+      });
+      if (success) get().pushToCloud();
+      return success;
+    },
     
     setStatsData: (data) => set(() => ({ ...data })),
     

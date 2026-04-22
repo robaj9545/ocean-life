@@ -19,11 +19,13 @@ import { ShopCard } from '../components/ui/Cards'
 import { TabBar } from '../components/ui/Buttons'
 import { BalancePill } from '../components/ui/Stats'
 import { useAlert } from '../components/ui/Alert'
+import RenameFishModal from '../components/screens/RenameFishModal'
 
-type Tab = 'shop' | 'food' | 'cemetery'
+type Tab = 'shop' | 'food' | 'cemetery' | 'decorations'
 
 export default function ShopScreen({ onClose }: { onClose?: () => void }) {
   const [activeTab, setActiveTab] = useState<Tab>('shop')
+  const [showRenameModal, setShowRenameModal] = useState(false)
   const coins = useGameStore(state => state.coins)
   const deadFishes = useGameStore(state => state.deadFishes)
   const addCoins = useGameStore(state => state.addCoins)
@@ -33,12 +35,15 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
   const incrementStat = useGameStore(state => state.incrementStat)
 
   const tabOptions = [
-    { id: 'shop', icon: <Store size={15} />, label: 'Loja', accent: '#00E5FF' },
+    { id: 'shop', icon: <Store size={15} />, label: 'Peixes', accent: '#00E5FF' },
     { id: 'food', icon: <Drumstick size={15} />, label: 'Ração', accent: '#FFA500' },
     { id: 'cemetery', icon: <Skull size={15} />, label: 'Necrotério', accent: '#A855F7' },
+    { id: 'decorations', icon: <Store size={15} />, label: 'Decorações', accent: '#FF69B4' },
   ]
 
   const { alert } = useAlert()
+
+  const buyNicknameItem = useGameStore(state => state.buyNicknameItem)
 
   const buyFood = (price: number, amount: number) => {
     if (coins >= price) {
@@ -46,6 +51,15 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
       addFood(amount)
       incrementStat('buy_food', 1)
       alert({ type: 'success', title: '✅ Comprado!', message: `${amount} porções de ração adicionadas!` })
+    } else {
+      alert({ type: 'error', title: '❌ Saldo insuficiente', message: 'Você não tem moedas suficientes!' })
+    }
+  }
+
+  const handleBuyNickname = () => {
+    if (coins >= 1000) {
+      buyNicknameItem()
+      setShowRenameModal(true)
     } else {
       alert({ type: 'error', title: '❌ Saldo insuficiente', message: 'Você não tem moedas suficientes!' })
     }
@@ -89,7 +103,7 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
           </View>
           <View>
             <Text style={s.title}>
-              {activeTab === 'shop' ? 'Loja' : activeTab === 'food' ? 'Ração' : 'Necrotério'}
+              {activeTab === 'shop' ? 'Peixes' : activeTab === 'food' ? 'Ração' : activeTab === 'decorations' ? 'Decorações' : 'Necrotério'}
             </Text>
             <Text style={s.subtitle}>Carteira • <Text style={{ color: '#FFD700' }}>{Math.floor(coins).toLocaleString()}</Text></Text>
           </View>
@@ -121,7 +135,7 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
               <ShopCard
                 index={0}
                 title="Peixe-Palhaço"
-                description="Alegre e resistente. Gera moedas em ritmo moderado."
+                description="Alegre e resistente."
                 rarity="COMUM"
                 rarityColor="#00E5A0"
                 accentColor="#FF7043"
@@ -133,14 +147,74 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
               <ShopCard
                 index={1}
                 title="Cirurgião-Patela"
-                description="Cresce rápido e gera mais moedas. Um investimento raro!"
-                rarity="RARO"
-                rarityColor="#A855F7"
+                description="Cresce rápido e gera mais moedas."
+                rarity="COMUM"
+                rarityColor="#00E5A0"
                 accentColor="#29B6F6"
                 price={150}
                 preview={<BlueTangSVG size={80} />}
-                onBuy={() => buyFish(150, 'bluetang', 'rare')}
+                onBuy={() => buyFish(150, 'bluetang', 'common')}
                 disabled={coins < 150}
+              />
+              <ShopCard
+                index={2}
+                title="Peixe Aranha"
+                description="Sombrio, cheio de espetos."
+                rarity="RARO"
+                rarityColor="#A855F7"
+                accentColor="#8B008B"
+                price={500}
+                preview={<Text style={{fontSize: 50}}>🕷️</Text>}
+                onBuy={() => buyFish(500, 'spiderfish', 'rare')}
+                disabled={coins < 500}
+              />
+              <ShopCard
+                index={3}
+                title="Peixe-Leão"
+                description="Perigoso e belo."
+                rarity="RARO"
+                rarityColor="#A855F7"
+                accentColor="#B22222"
+                price={750}
+                preview={<Text style={{fontSize: 50}}>🦁</Text>}
+                onBuy={() => buyFish(750, 'lionfish', 'rare')}
+                disabled={coins < 750}
+              />
+              <ShopCard
+                index={4}
+                title="Peixe-Dragão"
+                description="Majestoso e brilhante."
+                rarity="ÉPICO"
+                rarityColor="#FF007F"
+                accentColor="#00FA9A"
+                price={2000}
+                preview={<Text style={{fontSize: 50}}>🐉</Text>}
+                onBuy={() => buyFish(2000, 'dragonfish', 'epic')}
+                disabled={coins < 2000}
+              />
+              <ShopCard
+                index={5}
+                title="Tubarão-Fantasma"
+                description="Transparente, de outra dimensão."
+                rarity="ÉPICO"
+                rarityColor="#FF007F"
+                accentColor="#E0FFFF"
+                price={2500}
+                preview={<Text style={{fontSize: 50}}>👻</Text>}
+                onBuy={() => buyFish(2500, 'ghostshark', 'epic')}
+                disabled={coins < 2500}
+              />
+              <ShopCard
+                index={6}
+                title="Leviatã"
+                description="Lenda viva dos oceanos antigos."
+                rarity="LENDÁRIO"
+                rarityColor="#FFD700"
+                accentColor="#4B0082"
+                price={10000}
+                preview={<Text style={{fontSize: 50}}>🦑</Text>}
+                onBuy={() => buyFish(10000, 'leviathan', 'legendary')}
+                disabled={coins < 10000}
               />
             </>
           )}
@@ -223,9 +297,28 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
               })
             )
           )}
+
+          {activeTab === 'decorations' && (
+            <>
+              <ShopCard
+                index={0}
+                title="Apelidar Peixe"
+                description="Dê um nome único a um dos seus peixes! Se não usar agora, vai para o inventário."
+                rarity="DECORAÇÃO"
+                rarityColor="#FF69B4"
+                accentColor="#FF69B4"
+                price={1000}
+                preview={<Text style={{fontSize: 50}}>🏷️</Text>}
+                onBuy={handleBuyNickname}
+                disabled={coins < 1000}
+              />
+            </>
+          )}
         </View>
       </ScrollView>
       </View>
+      
+      {showRenameModal && <RenameFishModal onClose={() => setShowRenameModal(false)} />}
     </View>
   )
 }

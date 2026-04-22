@@ -6,16 +6,25 @@ interface CreateFishProps {
   stage?: 'egg' | 'baby' | 'adult';
 }
 
+const SPECIES_BY_RARITY: Record<string, string[]> = {
+  common: ['clownfish', 'bluetang'],
+  rare: ['spiderfish', 'lionfish'],
+  epic: ['dragonfish', 'ghostshark'],
+  legendary: ['leviathan']
+};
+
 export const createFish = ({ rarity = 'common', species, stage = 'baby' }: CreateFishProps = {}): Omit<FishEntity, 'id'> => {
-  const possibleSpecies = ['clownfish', 'bluetang', 'striped', 'puffer', 'fantasy', 'generic'];
+  const possibleSpecies = SPECIES_BY_RARITY[rarity] || SPECIES_BY_RARITY.common;
   const finalSpecies = species || possibleSpecies[Math.floor(Math.random() * possibleSpecies.length)];
   
   let color = '#FFA500';
   if (finalSpecies === 'bluetang') color = '#0000FF';
-  else if (finalSpecies === 'striped') color = '#32CD32';
-  else if (finalSpecies === 'puffer') color = '#F4D03F';
-  else if (finalSpecies === 'fantasy') color = '#FF69B4';
-  else if (finalSpecies === 'generic') color = '#3498DB';
+  else if (finalSpecies === 'clownfish') color = '#FF4500';
+  else if (finalSpecies === 'spiderfish') color = '#8B008B';
+  else if (finalSpecies === 'lionfish') color = '#B22222';
+  else if (finalSpecies === 'dragonfish') color = '#00FA9A';
+  else if (finalSpecies === 'ghostshark') color = '#E0FFFF';
+  else if (finalSpecies === 'leviathan') color = '#4B0082';
 
   const initialSize = 25;
 

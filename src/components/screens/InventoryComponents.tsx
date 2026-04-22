@@ -11,6 +11,18 @@ import BlueTangSVG from '../../components/fishes/BlueTang'
 import ClownfishSVG from '../../components/fishes/Clownfish'
 import { MiniBar } from '../ui/Stats'
 
+const renderPreview = (species: string, size: number) => {
+  if (species === 'bluetang') return <BlueTangSVG size={size} />
+  if (species === 'spiderfish') return <Text style={{fontSize: size * 0.7}}>🕷️</Text>
+  if (species === 'lionfish') return <Text style={{fontSize: size * 0.7}}>🦁</Text>
+  if (species === 'dragonfish') return <Text style={{fontSize: size * 0.7}}>🐉</Text>
+  if (species === 'ghostshark') return <Text style={{fontSize: size * 0.7}}>👻</Text>
+  if (species === 'leviathan') return <Text style={{fontSize: size * 0.7}}>🦑</Text>
+  return <ClownfishSVG size={size} />
+}
+
+const speciesNameMap: Record<string, string> = { clownfish: 'Palhaço', bluetang: 'Cirurgião', spiderfish: 'Peixe Aranha', lionfish: 'Peixe-Leão', dragonfish: 'Peixe-Dragão', ghostshark: 'Tubarão-Fantasma', leviathan: 'Leviatã' }
+
 // ─── FishCard ────────────────────────────────────────────────────────────────
 export function FishCard({ item, index }: { item: any; index: number }) {
   const enter = useRef(new Animated.Value(0)).current
@@ -27,7 +39,7 @@ export function FishCard({ item, index }: { item: any; index: number }) {
 
   const isHungry = item.hunger <= 40
   const isAdult = item.stage === 'adult'
-  const speciesLabel = item.species === 'clownfish' ? 'Palhaço' : 'Cirurgião'
+  const speciesLabel = item.nickname || speciesNameMap[item.species] || item.species
   const accentColor = item.species === 'clownfish' ? '#FF7043' : '#29B6F6'
 
   return (
@@ -51,9 +63,7 @@ export function FishCard({ item, index }: { item: any; index: number }) {
           colors={[`${accentColor}22`, 'transparent']}
           style={StyleSheet.absoluteFillObject}
         />
-        {item.species === 'bluetang'
-          ? <BlueTangSVG size={52} />
-          : <ClownfishSVG size={52} />}
+        {renderPreview(item.species, 52)}
       </View>
 
       {/* Info */}

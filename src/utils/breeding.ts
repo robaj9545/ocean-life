@@ -11,16 +11,13 @@ export function breed(fishA: FishEntity, fishB: FishEntity): Omit<FishEntity, 'i
   // Decide offspring rarity
   const aIdx = RARITIES.indexOf(fishA.rarity)
   const bIdx = RARITIES.indexOf(fishB.rarity)
-  const maxIdx = Math.max(aIdx, bIdx)
   
-  let offspringRarity: RarityType = RARITIES[Math.max(0, maxIdx - 1)]
-  
-  // 30% chance to inherit the higher rarity, else one tier lower
-  if (Math.random() < 0.3) {
-    offspringRarity = RARITIES[maxIdx]
-  } else if (Math.random() < 0.05 && maxIdx < RARITIES.length - 1) {
-    // 5% chance to go one tier higher (fixed overlap)
-    offspringRarity = RARITIES[maxIdx + 1]
+  let offspringRarity: RarityType;
+  if (aIdx === bIdx) {
+    offspringRarity = RARITIES[Math.min(RARITIES.length - 1, aIdx + 1)]
+  } else {
+    const maxIdx = Math.max(aIdx, bIdx)
+    offspringRarity = RARITIES[Math.max(0, maxIdx - 1)]
   }
 
   // Determine DNA and color mixing
@@ -28,11 +25,18 @@ export function breed(fishA: FishEntity, fishB: FishEntity): Omit<FishEntity, 'i
   
   let offspringColor = offspringDNA.colorGene === 'A' ? fishA.color : fishB.color
 
-  // Mutation logic
-  const inheritA = Math.random() > 0.5
-  let offspringSpecies = inheritA ? fishA.species : fishB.species
+  // Assign species based on the new rarity
+  const SPECIES_BY_RARITY: Record<string, string[]> = {
+    common: ['clownfish', 'bluetang'],
+    rare: ['spiderfish', 'lionfish'],
+    epic: ['dragonfish', 'ghostshark'],
+    legendary: ['leviathan']
+  };
+
+  const possibleSpecies = SPECIES_BY_RARITY[offspringRarity];
+  let offspringSpecies = possibleSpecies[Math.floor(Math.random() * possibleSpecies.length)];
+
   if (isMutation) {
-    offspringSpecies = 'mutant_' + Math.floor(Math.random() * 1000)
     offspringColor = `hsl(${Math.random() * 360},80%,60%)`
   }
 

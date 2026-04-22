@@ -10,12 +10,15 @@ import {
 } from 'react-native'
 import { useGameStore } from '../store/useGameStore'
 import { FishCard, SummaryBar } from '../components/screens/InventoryComponents'
-
-// ─── Main ─────────────────────────────────────────────────────────────────────
+import RenameFishModal from '../components/screens/RenameFishModal'
+import { useState } from 'react'
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function InventoryScreen({ onClose }: { onClose?: () => void }) {
+  const [showRenameModal, setShowRenameModal] = useState(false)
   const fishes = useGameStore(state => state.fishes)
+  const stats = useGameStore(state => state.stats)
+  const nicknameItems = stats.nickname_items || 0
   const { width } = useWindowDimensions();
   const numCols = width > 600 ? 3 : 2;
 
@@ -37,6 +40,15 @@ export default function InventoryScreen({ onClose }: { onClose?: () => void }) {
 
         <View style={{ padding: 14 }}>
           {fishes.length > 0 && <SummaryBar fishes={fishes} />}
+          
+          {nicknameItems > 0 && (
+            <TouchableOpacity 
+              style={{ marginTop: 20, backgroundColor: 'rgba(255,105,180,0.2)', borderWidth: 1, borderColor: '#FF69B4', padding: 12, borderRadius: 10, alignItems: 'center' }}
+              onPress={() => setShowRenameModal(true)}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>🏷️ Usar "Apelido" ({nicknameItems})</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -68,6 +80,8 @@ export default function InventoryScreen({ onClose }: { onClose?: () => void }) {
           />
         )}
       </View>
+      
+      {showRenameModal && <RenameFishModal onClose={() => setShowRenameModal(false)} />}
     </View>
   )
 }

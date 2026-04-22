@@ -12,6 +12,18 @@ import BlueTangSVG from '../../components/fishes/BlueTang'
 import ClownfishSVG from '../../components/fishes/Clownfish'
 import { FishEntity } from '../../store/useGameStore'
 
+const renderPreview = (species: string, size: number) => {
+  if (species === 'bluetang') return <BlueTangSVG size={size} />
+  if (species === 'spiderfish') return <Text style={{fontSize: size * 0.7}}>🕷️</Text>
+  if (species === 'lionfish') return <Text style={{fontSize: size * 0.7}}>🦁</Text>
+  if (species === 'dragonfish') return <Text style={{fontSize: size * 0.7}}>🐉</Text>
+  if (species === 'ghostshark') return <Text style={{fontSize: size * 0.7}}>👻</Text>
+  if (species === 'leviathan') return <Text style={{fontSize: size * 0.7}}>🦑</Text>
+  return <ClownfishSVG size={size} />
+}
+
+const speciesNameMap: Record<string, string> = { clownfish: 'Palhaço', bluetang: 'Cirurgião', spiderfish: 'Peixe Aranha', lionfish: 'Peixe-Leão', dragonfish: 'Peixe-Dragão', ghostshark: 'Tubarão-Fantasma', leviathan: 'Leviatã' }
+
 // ─── Pulsing Heart ───────────────────────────────────────────────────────────
 export function PulseHeart({ active }: { active: boolean }) {
   const pulse = useRef(new Animated.Value(1)).current
@@ -82,11 +94,9 @@ export function FishSlot({ fish, label }: { fish: FishEntity | undefined; label:
       {fish ? (
         <View style={fs.filled}>
           <LinearGradient colors={['rgba(255,105,180,0.2)', 'rgba(100,149,237,0.2)']} style={fs.grad} />
-          {fish.species === 'bluetang'
-            ? <BlueTangSVG size={56} />
-            : <ClownfishSVG size={56} />}
+          {renderPreview(fish.species, 56)}
           <Text style={fs.species} numberOfLines={1}>
-            {fish.species === 'clownfish' ? 'Palhaço' : 'Cirurgião'}
+            {fish.nickname || speciesNameMap[fish.species] || fish.species}
           </Text>
         </View>
       ) : (
@@ -186,12 +196,10 @@ export function FishCard({
           />
         )}
         <View style={fc.preview}>
-          {fish.species === 'bluetang'
-            ? <BlueTangSVG size={40} />
-            : <ClownfishSVG size={40} />}
+          {renderPreview(fish.species, 40)}
         </View>
         <Text style={fc.name} numberOfLines={1}>
-          {fish.species === 'clownfish' ? 'Palhaço' : 'Cirurgião'}
+          {fish.nickname || speciesNameMap[fish.species] || fish.species}
         </Text>
         {isSelected && (
           <View style={fc.checkBadge}>

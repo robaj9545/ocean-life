@@ -7,6 +7,7 @@ export interface UserStats {
   collect_coin: number;
   buy_food: number;
   revive: number;
+  nickname_items?: number;
 }
 
 export const statsService = {

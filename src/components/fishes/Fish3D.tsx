@@ -28,10 +28,22 @@ const GlossyMaterial = ({ color }: { color: string }) => (
     roughness={0.2} 
     metalness={0.0} 
     clearcoat={1.0} 
-    clearcoatRoughness={0.1} 
-    transmission={0.0}
+    clearcoatRoughness={0.1}
   />
 );
+
+const BodyMaterial = ({ color, species }: { color: string, species: string }) => {
+  if (species === 'ghostshark') {
+    return <meshPhysicalMaterial color={color} roughness={0.1} clearcoat={1.0} transparent opacity={0.6} />
+  }
+  if (species === 'leviathan') {
+    return <meshPhysicalMaterial color={color} roughness={0.4} metalness={0.8} clearcoat={1.0} emissive={color} emissiveIntensity={0.5} />
+  }
+  if (species === 'dragonfish') {
+    return <meshPhysicalMaterial color={color} roughness={0.2} metalness={0.4} clearcoat={1.0} emissive={color} emissiveIntensity={0.3} />
+  }
+  return <GlossyMaterial color={color} />
+};
 
 export default function Fish3D({ fish, setSelectedFish, hungryRefs }: Fish3DProps) {
   const { camera, size } = useThree();
@@ -168,83 +180,140 @@ export default function Fish3D({ fish, setSelectedFish, hungryRefs }: Fish3DProp
     }
   });
 
+  const isSpiderfish = fish.species === 'spiderfish';
+  const isLionfish = fish.species === 'lionfish';
+  const isDragonfish = fish.species === 'dragonfish';
+  const isGhostshark = fish.species === 'ghostshark';
+  const isLeviathan = fish.species === 'leviathan';
+
+  let modelScale = baseScale;
+  if (isLeviathan) modelScale = baseScale * 1.8;
+  else if (isDragonfish || isGhostshark) modelScale = baseScale * 1.4;
+
+  let bodyScale: [number, number, number] = [1.2, 1.4, 0.9];
+  if (isDragonfish) bodyScale = [2.5, 1.2, 0.8];
+  else if (isLeviathan) bodyScale = [2.8, 1.6, 1.1];
+  else if (isGhostshark) bodyScale = [1.8, 1.2, 0.8];
+
+  const showStripes = !isGhostshark && !isLeviathan && !isDragonfish && !isSpiderfish;
+
   return (
-    <group ref={groupRef} scale={[baseScale, baseScale, baseScale]} onPointerDown={(e) => { e.stopPropagation(); setSelectedFish(fish); }}>
+    <group ref={groupRef} scale={[modelScale, modelScale, modelScale]} onPointerDown={(e) => { e.stopPropagation(); setSelectedFish(fish); }}>
       
       {/* 1. Main Organic Body (Single Mesh Pill-Shape) */}
-      <group position={[0, 0, 0]} rotation={[0, 0, 1.57]} scale={[1.2, 1.4, 0.9]}>
+      <group position={[0, 0, 0]} rotation={[0, 0, 1.57]} scale={bodyScale}>
         <mesh castShadow receiveShadow>
-            {/* CapsuleGeometry perfectly replaces the old Cylinder + 2 Spheres combination! */}
             <capsuleGeometry args={[0.4, 0.3, 32, 32]} />
-            <GlossyMaterial color={bodyColor} />
+            <BodyMaterial color={bodyColor} species={fish.species} />
         </mesh>
       </group>
 
+      {/* Spiderfish Spikes */}
+      {isSpiderfish && (
+        <group>
+           <mesh position={[0, 0.6, 0]}><coneGeometry args={[0.1, 0.6, 8]} /><GlossyMaterial color="#000" /></mesh>
+           <mesh position={[-0.4, 0.5, 0]} rotation={[0, 0, 0.5]}><coneGeometry args={[0.1, 0.6, 8]} /><GlossyMaterial color="#000" /></mesh>
+           <mesh position={[0.4, 0.5, 0]} rotation={[0, 0, -0.5]}><coneGeometry args={[0.1, 0.6, 8]} /><GlossyMaterial color="#000" /></mesh>
+        </group>
+      )}
+
+      {/* Lionfish Ray Fins */}
+      {isLionfish && (
+        <group>
+           <mesh position={[0.2, 0.6, 0.3]} rotation={[0.4, 0, -0.4]}><cylinderGeometry args={[0.02, 0.05, 1.2]} /><GlossyMaterial color={stripeColor} /></mesh>
+           <mesh position={[0.2, 0.6, -0.3]} rotation={[-0.4, 0, -0.4]}><cylinderGeometry args={[0.02, 0.05, 1.2]} /><GlossyMaterial color={stripeColor} /></mesh>
+           <mesh position={[-0.2, 0.6, 0.3]} rotation={[0.4, 0, 0.4]}><cylinderGeometry args={[0.02, 0.05, 1.2]} /><GlossyMaterial color={stripeColor} /></mesh>
+           <mesh position={[-0.2, 0.6, -0.3]} rotation={[-0.4, 0, 0.4]}><cylinderGeometry args={[0.02, 0.05, 1.2]} /><GlossyMaterial color={stripeColor} /></mesh>
+        </group>
+      )}
+
+      {/* Dragonfish Whiskers & Extra Scales */}
+      {isDragonfish && (
+        <group>
+          <mesh position={[0.8, -0.2, 0.2]} rotation={[0, 0, 1.2]}><cylinderGeometry args={[0.02, 0.01, 0.8]} /><GlossyMaterial color={stripeColor} /></mesh>
+          <mesh position={[0.8, -0.2, -0.2]} rotation={[0, 0, 1.2]}><cylinderGeometry args={[0.02, 0.01, 0.8]} /><GlossyMaterial color={stripeColor} /></mesh>
+        </group>
+      )}
+
       {/* 2. Seamless Stripes integrated tightly */}
-      <mesh castShadow receiveShadow position={[0.2, 0, 0]} rotation={[0, 1.57, 1.57]} scale={[1.0, 0.9, 0.4]}>
-         <torusGeometry args={[0.45, 0.08, 32, 64]} />
-         <GlossyMaterial color={stripeColor} />
-      </mesh>
-      <mesh castShadow receiveShadow position={[-0.2, 0, 0]} rotation={[0, 1.57, 1.57]} scale={[0.85, 0.8, 0.4]}>
-         <torusGeometry args={[0.4, 0.08, 32, 64]} />
-         <GlossyMaterial color={stripeColor} />
-      </mesh>
+      {showStripes && (
+        <>
+          <mesh castShadow receiveShadow position={[0.2, 0, 0]} rotation={[0, 1.57, 1.57]} scale={[1.0, 0.9, 0.4]}>
+             <torusGeometry args={[0.45, 0.08, 32, 64]} />
+             <GlossyMaterial color={stripeColor} />
+          </mesh>
+          <mesh castShadow receiveShadow position={[-0.2, 0, 0]} rotation={[0, 1.57, 1.57]} scale={[0.85, 0.8, 0.4]}>
+             <torusGeometry args={[0.4, 0.08, 32, 64]} />
+             <GlossyMaterial color={stripeColor} />
+          </mesh>
+        </>
+      )}
 
       {/* 3. Huge Anime Glossy Eyes */}
-      <group position={[0.45, 0.15, 0.35]} rotation={[0, 0.5, -0.2]}>
-        {/* Sclera */}
-        <mesh position={[0,0,0]}><sphereGeometry args={[0.22, 32, 32]} /><meshPhysicalMaterial color="#FFFFFF" roughness={0.1} clearcoat={1.0} /></mesh>
-        {/* Iris */}
-        <mesh position={[0.1, 0, 0.12]}><sphereGeometry args={[0.12, 32, 32]} /><meshPhysicalMaterial color="#00CED1" roughness={0.1} clearcoat={1.0} /></mesh>
-        {/* Pupil */}
-        <mesh position={[0.16, 0, 0.16]}><sphereGeometry args={[0.08, 32, 32]} /><meshBasicMaterial color="#000000" /></mesh>
-        {/* Giant Specular Glint */}
-        <mesh position={[0.18, 0.08, 0.18]}><sphereGeometry args={[0.04, 16, 16]} /><meshBasicMaterial color="#FFFFFF" /></mesh>
-        <mesh position={[0.22, -0.04, 0.18]}><sphereGeometry args={[0.015, 16, 16]} /><meshBasicMaterial color="#FFFFFF" /></mesh>
+      <group position={[isDragonfish || isLeviathan ? 0.7 : 0.45, 0.15, 0.35]} rotation={[0, 0.5, -0.2]}>
+        <mesh position={[0,0,0]}><sphereGeometry args={[0.22, 32, 32]} /><meshPhysicalMaterial color={isLeviathan ? "#FF0000" : "#FFFFFF"} roughness={0.1} clearcoat={1.0} emissive={isLeviathan ? "#FF0000" : "#000000"} /></mesh>
+        {!isLeviathan && (
+          <>
+            <mesh position={[0.1, 0, 0.12]}><sphereGeometry args={[0.12, 32, 32]} /><meshPhysicalMaterial color="#00CED1" roughness={0.1} clearcoat={1.0} /></mesh>
+            <mesh position={[0.16, 0, 0.16]}><sphereGeometry args={[0.08, 32, 32]} /><meshBasicMaterial color="#000000" /></mesh>
+            <mesh position={[0.18, 0.08, 0.18]}><sphereGeometry args={[0.04, 16, 16]} /><meshBasicMaterial color="#FFFFFF" /></mesh>
+            <mesh position={[0.22, -0.04, 0.18]}><sphereGeometry args={[0.015, 16, 16]} /><meshBasicMaterial color="#FFFFFF" /></mesh>
+          </>
+        )}
       </group>
       
-      <group position={[0.45, 0.15, -0.35]} rotation={[0, -0.5, -0.2]}>
-        <mesh position={[0,0,0]}><sphereGeometry args={[0.22, 32, 32]} /><meshPhysicalMaterial color="#FFFFFF" roughness={0.1} clearcoat={1.0} /></mesh>
-        <mesh position={[0.1, 0, -0.12]}><sphereGeometry args={[0.12, 32, 32]} /><meshPhysicalMaterial color="#00CED1" roughness={0.1} clearcoat={1.0} /></mesh>
-        <mesh position={[0.16, 0, -0.16]}><sphereGeometry args={[0.08, 32, 32]} /><meshBasicMaterial color="#000000" /></mesh>
-        <mesh position={[0.18, 0.08, -0.18]}><sphereGeometry args={[0.04, 16, 16]} /><meshBasicMaterial color="#FFFFFF" /></mesh>
-        <mesh position={[0.22, -0.04, -0.18]}><sphereGeometry args={[0.015, 16, 16]} /><meshBasicMaterial color="#FFFFFF" /></mesh>
+      <group position={[isDragonfish || isLeviathan ? 0.7 : 0.45, 0.15, -0.35]} rotation={[0, -0.5, -0.2]}>
+        <mesh position={[0,0,0]}><sphereGeometry args={[0.22, 32, 32]} /><meshPhysicalMaterial color={isLeviathan ? "#FF0000" : "#FFFFFF"} roughness={0.1} clearcoat={1.0} emissive={isLeviathan ? "#FF0000" : "#000000"} /></mesh>
+        {!isLeviathan && (
+          <>
+            <mesh position={[0.1, 0, -0.12]}><sphereGeometry args={[0.12, 32, 32]} /><meshPhysicalMaterial color="#00CED1" roughness={0.1} clearcoat={1.0} /></mesh>
+            <mesh position={[0.16, 0, -0.16]}><sphereGeometry args={[0.08, 32, 32]} /><meshBasicMaterial color="#000000" /></mesh>
+            <mesh position={[0.18, 0.08, -0.18]}><sphereGeometry args={[0.04, 16, 16]} /><meshBasicMaterial color="#FFFFFF" /></mesh>
+            <mesh position={[0.22, -0.04, -0.18]}><sphereGeometry args={[0.015, 16, 16]} /><meshBasicMaterial color="#FFFFFF" /></mesh>
+          </>
+        )}
       </group>
 
       {/* 4. Cute V-shaped Smile (Embedded flush with face) */}
-      <mesh position={[0.55, -0.15, 0]} rotation={[0.4, 1.57, 0]}>
-         <torusGeometry args={[0.06, 0.02, 16, 32, 3.14]} />
-         <meshBasicMaterial color="#8B0000" />
-      </mesh>
+      {!isLeviathan && !isGhostshark && (
+        <mesh position={[isDragonfish ? 0.9 : 0.55, -0.15, 0]} rotation={[0.4, 1.57, 0]}>
+           <torusGeometry args={[0.06, 0.02, 16, 32, 3.14]} />
+           <meshBasicMaterial color="#8B0000" />
+        </mesh>
+      )}
       
       {/* Pink Rosy Cheeks */}
-      <mesh position={[0.45, -0.05, 0.35]}><sphereGeometry args={[0.08, 16, 16]} /><meshBasicMaterial color="#FF69B4" transparent opacity={0.6} /></mesh>
-      <mesh position={[0.45, -0.05, -0.35]}><sphereGeometry args={[0.08, 16, 16]} /><meshBasicMaterial color="#FF69B4" transparent opacity={0.6} /></mesh>
+      {!isLeviathan && !isGhostshark && (
+        <>
+          <mesh position={[isDragonfish ? 0.8 : 0.45, -0.05, 0.35]}><sphereGeometry args={[0.08, 16, 16]} /><meshBasicMaterial color="#FF69B4" transparent opacity={0.6} /></mesh>
+          <mesh position={[isDragonfish ? 0.8 : 0.45, -0.05, -0.35]}><sphereGeometry args={[0.08, 16, 16]} /><meshBasicMaterial color="#FF69B4" transparent opacity={0.6} /></mesh>
+        </>
+      )}
 
-      {/* 5. Smooth Tail Fin - Single Capsule Mesh */}
-      <mesh castShadow receiveShadow ref={tailRef} position={[-0.65, 0, 0]}>
-         <group position={[-0.2, 0, 0]} scale={[0.8, 1.2, 0.2]}>
+      {/* 5. Smooth Tail Fin */}
+      <mesh castShadow receiveShadow ref={tailRef} position={[isDragonfish || isLeviathan ? -1.2 : -0.65, 0, 0]}>
+         <group position={[-0.2, 0, 0]} scale={isLeviathan ? [1.5, 2.0, 0.4] : [0.8, 1.2, 0.2]}>
            <mesh castShadow receiveShadow>
-             <capsuleGeometry args={[0.2, 0.2, 16, 16]} />
-             <GlossyMaterial color={finColor} />
+             {isGhostshark ? <coneGeometry args={[0.3, 0.8, 4]} /> : <capsuleGeometry args={[0.2, 0.2, 16, 16]} />}
+             <BodyMaterial color={finColor} species={fish.species} />
            </mesh>
          </group>
       </mesh>
 
       {/* 6. Top Dorsal Fin */}
       <mesh castShadow receiveShadow position={[-0.1, 0.5, 0]} rotation={[0, 0, -0.3]} scale={[1, 0.8, 0.3]}>
-         <sphereGeometry args={[0.25, 32, 32]} />
-         <GlossyMaterial color={finColor} />
+         {isGhostshark || isLeviathan ? <coneGeometry args={[0.4, 0.8, 4]} /> : <sphereGeometry args={[0.25, 32, 32]} />}
+         <BodyMaterial color={finColor} species={fish.species} />
       </mesh>
 
       {/* 7. Wiggling Side Fins */}
       <mesh castShadow receiveShadow ref={fin1Ref} position={[0.1, -0.3, 0.4]} rotation={[0.4, 0.2, -0.8]} scale={[1.2, 0.8, 0.3]}>
-         <sphereGeometry args={[0.15, 32, 32]} />
-         <GlossyMaterial color={finColor} />
+         {isGhostshark ? <coneGeometry args={[0.2, 0.6, 4]} /> : <sphereGeometry args={[0.15, 32, 32]} />}
+         <BodyMaterial color={finColor} species={fish.species} />
       </mesh>
       <mesh castShadow receiveShadow ref={fin2Ref} position={[0.1, -0.3, -0.4]} rotation={[-0.4, -0.2, -0.8]} scale={[1.2, 0.8, 0.3]}>
-         <sphereGeometry args={[0.15, 32, 32]} />
-         <GlossyMaterial color={finColor} />
+         {isGhostshark ? <coneGeometry args={[0.2, 0.6, 4]} /> : <sphereGeometry args={[0.15, 32, 32]} />}
+         <BodyMaterial color={finColor} species={fish.species} />
       </mesh>
 
     </group>
