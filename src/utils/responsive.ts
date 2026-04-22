@@ -66,6 +66,7 @@ export const fonts = {
 
 // ─── Border Radius Tokens ────────────────────────────────────────────────────
 export const radius = {
+  xxs: scale(2),
   xs: scale(4),
   sm: scale(8),
   md: scale(12),

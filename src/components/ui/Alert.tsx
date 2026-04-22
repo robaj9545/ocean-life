@@ -14,6 +14,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { scale, fonts, spacing, radius, iconSize } from '../../utils/responsive';
 
 // ─────────────────────────────────────────────
 // TIPOS
@@ -124,7 +125,7 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
           >
             <View style={styles.cardTop}>
               <View style={[styles.iconWrapper, { backgroundColor: config.iconBg }]}>
-                <Icon size={28} color={config.iconColor} />
+                <Icon size={iconSize.lg} color={config.iconColor} />
               </View>
 
               <Text style={styles.title}>{options.title}</Text>
@@ -240,22 +241,22 @@ const configs: Record<AlertType, { icon: any; iconBg: string; iconColor: string 
   },
 };
 
-const RADIUS = 20;
+const RADIUS = radius.xl;
 
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(2, 13, 31, 0.65)', // Fundo estilo as profundezas do app
+    backgroundColor: 'rgba(2, 13, 31, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: spacing.xxl,
   },
   cardWrapper: {
     width: '100%',
-    maxWidth: 340,
-    backgroundColor: '#0a1e3c', // Cor base do tema oceano do jogo
+    maxWidth: scale(320),
+    backgroundColor: '#0a1e3c',
     borderRadius: RADIUS,
-    shadowColor: '#00e5ff', // Glow style
+    shadowColor: '#00e5ff',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.15,
     shadowRadius: 20,
@@ -267,35 +268,35 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderTopLeftRadius: RADIUS,
     borderTopRightRadius: RADIUS,
-    paddingBottom: 24,
+    paddingBottom: spacing.xl,
   },
   iconWrapper: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: scale(48),
+    height: scale(48),
+    borderRadius: scale(24),
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'center',
-    marginTop: 28,
-    marginBottom: 14,
+    marginTop: spacing.xxl,
+    marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)'
   },
   title: {
-    fontSize: 18,
+    fontSize: fonts.xl,
     color: '#ffffff',
     fontWeight: 'bold',
     textAlign: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: spacing.xl,
     letterSpacing: 0.2,
   },
   message: {
-    fontSize: 14,
+    fontSize: fonts.base,
     color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
-    paddingHorizontal: 24,
-    marginTop: 8,
-    lineHeight: 20,
+    paddingHorizontal: spacing.xl,
+    marginTop: spacing.sm,
+    lineHeight: fonts.xl,
   },
   divider: {
     height: 1,
@@ -321,13 +322,13 @@ const styles = StyleSheet.create({
   },
   btnRow: {
     flex: 1,
-    paddingVertical: 18,
+    paddingVertical: spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   btnColumn: {
     width: '100%',
-    paddingVertical: 18,
+    paddingVertical: spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -345,7 +346,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: RADIUS,
   },
   btnText: {
-    fontSize: 15,
+    fontSize: fonts.lg,
     fontWeight: 'bold',
     textTransform: 'uppercase',
     letterSpacing: 0.5,

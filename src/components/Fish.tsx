@@ -1,9 +1,9 @@
-import React, { useMemo } from 'react'
-import { View, Text, StyleSheet } from 'react-native'
+import React from 'react'
+import { View, StyleSheet } from 'react-native'
 import { Drumstick, HeartPulse } from 'lucide-react-native'
 import ClownfishSVG from './fishes/Clownfish'
 import BlueTangSVG from './fishes/BlueTang'
-import { iconSize } from '../utils/responsive'
+import { scale, iconSize } from '../utils/responsive'
 
 // Memoize deeply to prevent expensive SVG re-renders 60x per second
 const MemoizedFishSVG = React.memo(({ species, size, isBaby }: any) => {
@@ -22,16 +22,16 @@ export default function Fish(props: any) {
   return (
     <View style={[styles.fish, { left: position.x - renderSize/2, top: position.y - renderSize/2, width: renderSize, height: renderSize, borderRadius: renderSize / 2 }]}>
       
-       {/* Needs food? Show fork and knife icon floating above the fish! */}
+       {/* Needs food? Show drumstick icon floating above the fish */}
        {hunger < 40 && (
          <View style={styles.hungerBubble}>
            <Drumstick color="#FF4444" size={iconSize.xs} strokeWidth={2.5} />
          </View>
        )}
 
-       {/* Sick? Show icon */}
+       {/* Sick? Show health icon */}
        {health < 50 && (
-         <View style={[styles.hungerBubble, { top: -45, borderColor: 'green' }]}>
+         <View style={[styles.hungerBubble, { top: scale(-40), borderColor: 'green' }]}>
            <HeartPulse color="#00CC00" size={iconSize.xs} strokeWidth={2.5} />
          </View>
        )}
@@ -57,37 +57,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  body: {
-    position: 'absolute',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.1)'
-  },
-  tail: {
-    position: 'absolute',
-    width: 0,
-    height: 0,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
-    borderStyle: 'solid'
-  },
-  eye: {
-    position: 'absolute',
-    width: 4,
-    height: 4,
-    backgroundColor: '#000',
-    borderRadius: 2
-  },
   hungerBubble: {
     position: 'absolute',
-    top: -25,
+    top: scale(-22),
     backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 2,
+    borderRadius: scale(8),
+    padding: scale(2),
     borderWidth: 1,
     borderColor: '#ff0000',
     zIndex: 100
   },
-  hungerIcon: {
-    fontSize: 12
-  }
 })

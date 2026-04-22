@@ -1,6 +1,4 @@
-import React from 'react';
 import { Bug, Crown, Flame, Ghost, Anchor, Fish } from 'lucide-react-native';
-import { moderateScale } from '../utils/responsive';
 
 // Centralized species definitions — single source of truth
 export interface SpeciesInfo {

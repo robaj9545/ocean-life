@@ -1,16 +1,17 @@
 import { Gift, Coins, CheckCircle, Drumstick, Heart, ShoppingCart, Dna, Skull, Trophy, Check } from 'lucide-react-native'
 import React, { useEffect, useRef } from 'react'
-import { Animated, View, Text, StyleSheet, TouchableOpacity, Easing } from 'react-native'
+import { Animated, View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { MissionDef } from '../../data/missions'
+import { scale, fonts, spacing, radius, iconSize } from '../../utils/responsive'
 
 const ICONS: Record<string, React.ReactNode> = {
-  Drumstick: <Drumstick color="#FFA500" size={18} strokeWidth={2} />,
-  Coins: <Coins color="#FFD700" size={18} strokeWidth={2} />,
-  Heart: <Heart color="#FF69B4" size={18} strokeWidth={2} />,
-  ShoppingCart: <ShoppingCart color="#00E5FF" size={18} strokeWidth={2} />,
-  Dna: <Dna color="#A855F7" size={18} strokeWidth={2} />,
-  Skull: <Skull color="#FF4500" size={18} strokeWidth={2} />
+  Drumstick: <Drumstick color="#FFA500" size={iconSize.md} strokeWidth={2} />,
+  Coins: <Coins color="#FFD700" size={iconSize.md} strokeWidth={2} />,
+  Heart: <Heart color="#FF69B4" size={iconSize.md} strokeWidth={2} />,
+  ShoppingCart: <ShoppingCart color="#00E5FF" size={iconSize.md} strokeWidth={2} />,
+  Dna: <Dna color="#A855F7" size={iconSize.md} strokeWidth={2} />,
+  Skull: <Skull color="#FF4500" size={iconSize.md} strokeWidth={2} />
 }
 
 export function MissionCard({
@@ -53,7 +54,7 @@ export function MissionCard({
       )}
       
       <View style={s.iconWrap}>
-        {mission.icon && ICONS[mission.icon] ? ICONS[mission.icon] : <Trophy color="#FFD700" size={18} />}
+        {mission.icon && ICONS[mission.icon] ? ICONS[mission.icon] : <Trophy color="#FFD700" size={iconSize.md} />}
       </View>
 
       <View style={s.info}>
@@ -61,9 +62,9 @@ export function MissionCard({
         <Text style={[s.desc, isClaimed && s.textDim]}>{mission.description}</Text>
         
         <View style={s.rewards}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xxs }}>
             <Text style={[s.rewardText, isClaimed && s.textDim]}>+{mission.rewardCoins}</Text>
-            <Coins color={isClaimed ? 'rgba(255,255,255,0.3)' : '#FFD700'} size={12} strokeWidth={2.5} />
+            <Coins color={isClaimed ? 'rgba(255,255,255,0.3)' : '#FFD700'} size={iconSize.xs} strokeWidth={2.5} />
           </View>
           <Text style={[s.rewardText, isClaimed && s.textDim]}>+{mission.rewardXp} XP</Text>
         </View>
@@ -82,14 +83,14 @@ export function MissionCard({
       <View style={s.actionCol}>
         {isClaimed ? (
           <View style={s.claimedBadge}>
-            <CheckCircle color="#00E5A0" size={20} />
+            <CheckCircle color="#00E5A0" size={iconSize.md} />
             <Text style={s.claimedText}>Coletado</Text>
           </View>
         ) : isCompleted ? (
           <Animated.View style={{ transform: [{ translateY: floatAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }] }}>
             <TouchableOpacity style={s.claimBtn} onPress={onClaim} activeOpacity={0.8}>
                <LinearGradient colors={['#FFD700', '#FFA500']} style={s.claimGrad}>
-                 <Gift color="#fff" size={16} strokeWidth={2.5} />
+                 <Gift color="#fff" size={iconSize.sm} strokeWidth={2.5} />
                  <Text style={s.claimText}>Coletar</Text>
                </LinearGradient>
             </TouchableOpacity>
@@ -105,34 +106,34 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 10,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
     overflow: 'hidden'
   },
   cardClaimed: { opacity: 0.6, backgroundColor: 'rgba(0,0,0,0.2)', borderColor: 'transparent' },
   iconWrap: {
-    width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.08)',
-    alignItems: 'center', justifyContent: 'center', marginRight: 14,
+    width: scale(40), height: scale(40), borderRadius: radius.md, backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center', justifyContent: 'center', marginRight: spacing.md,
   },
   info: { flex: 1, justifyContent: 'center' },
-  title: { fontSize: 14, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
-  desc: { fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2, marginBottom: 8 },
+  title: { fontSize: fonts.base, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
+  desc: { fontSize: fonts.md, color: 'rgba(255,255,255,0.5)', marginTop: spacing.xxs, marginBottom: spacing.sm },
   textDim: { color: 'rgba(255,255,255,0.3)' },
-  rewards: { flexDirection: 'row', gap: 10, marginBottom: 8 },
-  rewardText: { fontSize: 11, fontWeight: '800', color: '#FFD700' },
-  trackBtn: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  barWrap: { flex: 1, height: 6, backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 3, overflow: 'hidden' },
-  barFill: { position: 'absolute', top: 0, bottom: 0, left: 0, borderRadius: 3 },
-  progressText: { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.4)' },
+  rewards: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm },
+  rewardText: { fontSize: fonts.md, fontWeight: '800', color: '#FFD700' },
+  trackBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  barWrap: { flex: 1, height: scale(5), backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: radius.xxs, overflow: 'hidden' },
+  barFill: { position: 'absolute', top: 0, bottom: 0, left: 0, borderRadius: radius.xxs },
+  progressText: { fontSize: fonts.sm, fontWeight: '700', color: 'rgba(255,255,255,0.4)' },
 
-  actionCol: { marginLeft: 10, alignItems: 'center', justifyContent: 'center' },
-  claimBtn: { borderRadius: 12, overflow: 'hidden' },
-  claimGrad: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, gap: 6 },
-  claimText: { color: '#fff', fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
+  actionCol: { marginLeft: spacing.sm, alignItems: 'center', justifyContent: 'center' },
+  claimBtn: { borderRadius: radius.md, overflow: 'hidden' },
+  claimGrad: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, gap: spacing.xs },
+  claimText: { color: '#fff', fontSize: fonts.sm, fontWeight: '900', textTransform: 'uppercase' },
 
-  claimedBadge: { alignItems: 'center', gap: 4 },
-  claimedText: { color: '#00E5A0', fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
+  claimedBadge: { alignItems: 'center', gap: spacing.xs },
+  claimedText: { color: '#00E5A0', fontSize: fonts.sm, fontWeight: '800', textTransform: 'uppercase' },
 })
