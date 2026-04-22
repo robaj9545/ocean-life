@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, ActivityIndicator, LogBox, Platform, AppState } from 'react-native'
+import { View, Text, LogBox, Platform, AppState } from 'react-native'
 import { setStatusBarHidden } from 'expo-status-bar'
 import * as NavigationBar from 'expo-navigation-bar'
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -14,11 +14,13 @@ import { Coins, Fish, Skull, Waves } from 'lucide-react-native'
 import AquariumScreen from './src/screens/AquariumScreen'
 import LoginScreen from './src/screens/LoginScreen'
 import { AlertProvider } from './src/components/ui/Alert'
+import { LoadingOverlay } from './src/components/ui/LoadingOverlay'
 import { scale, fonts, spacing, radius, iconSize } from './src/utils/responsive'
 
 export default function App() {
   const [session, setSession] = useState<any>(null)
   const [isReady, setIsReady] = useState(false)
+  const [loadingMsg, setLoadingMsg] = useState('Conectando ao servidor...')
   const [offlineSummary, setOfflineSummary] = useState<{ coins: number; deaths: number; grown: number } | null>(null)
 
   // ─── Immersive Mode: Hide system bars ──────────────────────────────────────
@@ -60,12 +62,15 @@ export default function App() {
     const loadData = async (session: any) => {
       setSession(session);
       if (session?.user) {
+        setLoadingMsg('Carregando dados do jogador...')
         const [economy, fishesObj, deadFishesObj, statsObj] = await Promise.all([
           economyService.loadEconomy(),
           fishService.loadFishes(),
           fishService.loadDeadFishes(),
           statsService.loadStats()
         ]);
+        
+        setLoadingMsg('Carregando peixes...')
         
         if (economy.data) {
           // Load lastSaved from AsyncStorage
@@ -129,10 +134,13 @@ export default function App() {
           }
 
           // Save the new state after applying offline progress
+          setLoadingMsg('Sincronizando...')
           useGameStore.getState().pushToCloud();
         }
       }
-      setIsReady(true);
+      setLoadingMsg('Preparando aquário...')
+      // Small delay for smooth transition
+      setTimeout(() => setIsReady(true), 300);
     };
 
     supabase.auth.getSession().then(({ data: { session } }) => loadData(session));
@@ -146,9 +154,8 @@ export default function App() {
 
   if (!isReady) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#002244' }}>
-        <ActivityIndicator size="large" color="#00BFFF" />
-        <Text style={{ color: '#fff', marginTop: spacing.md, fontWeight: 'bold', fontSize: fonts.base }}>Conectando Fundo do Mar...</Text>
+      <View style={{ flex: 1, backgroundColor: '#002244' }}>
+        <LoadingOverlay visible={true} message={loadingMsg} />
       </View>
     )
   }

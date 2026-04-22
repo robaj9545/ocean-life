@@ -73,6 +73,12 @@ export interface GameState {
   feedAllHungry: () => number;
   getSellPrice: (fish: FishEntity) => number;
   
+  // Loading state
+  isLoading: boolean;
+  loadingMessage: string;
+  startLoading: (message: string) => void;
+  stopLoading: () => void;
+  
   // Stats & Missions
   stats: UserStats;
   claimedMissions: string[];
@@ -289,6 +295,12 @@ export const useGameStore = create<GameState>()(
       get().addXp(rewardXp);
     },
 
-    pushToCloud: () => debouncedPush(get)
+    pushToCloud: () => debouncedPush(get),
+
+    // Loading
+    isLoading: false,
+    loadingMessage: '',
+    startLoading: (message) => set({ isLoading: true, loadingMessage: message }),
+    stopLoading: () => set({ isLoading: false, loadingMessage: '' }),
   })
 )

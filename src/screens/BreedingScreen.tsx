@@ -16,6 +16,7 @@ import { FishCard, FishSlot, PulseHeart } from '../components/screens/BreedingCo
 import { useAlert } from '../components/ui/Alert'
 import { getSpeciesName } from '../data/species'
 import { scale, sidePanel, fonts, spacing, radius, iconSize } from '../utils/responsive'
+import { LoadingOverlay } from '../components/ui/LoadingOverlay'
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
@@ -45,28 +46,34 @@ export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
   }
 
   const handleBreed = async () => {
-    if (!canBreed) return
+    if (!canBreed || breeding) return
     setBreeding(true)
     Animated.sequence([
       Animated.timing(breedAnim, { toValue: 1.08, duration: 200, useNativeDriver: true }),
       Animated.spring(breedAnim, { toValue: 1, useNativeDriver: true, tension: 200 }),
     ]).start()
 
-    const newFishData = breed(selected[0], selected[1])
-    const { data } = await fishService.createFishOnServer(newFishData)
-    if (data) {
-      addFish(data)
-      incrementStat('breed', 1)
-      alert({
-        type: 'success',
-        title: 'Nascimento!',
-        message: `Um lindo ${getSpeciesName(data.species)} filhote chegou!`,
-      })
-      setSelected([])
-    } else {
-      alert({ type: 'error', title: 'Erro', message: 'Não foi possível cruzar os peixes.' })
+    try {
+      const newFishData = breed(selected[0], selected[1])
+      const { data } = await fishService.createFishOnServer(newFishData)
+      if (data) {
+        addFish(data)
+        incrementStat('breed', 1)
+        alert({
+          type: 'success',
+          title: 'Nascimento!',
+          message: `Um lindo ${getSpeciesName(data.species)} filhote chegou!`,
+        })
+        setSelected([])
+      } else {
+        alert({ type: 'error', title: 'Erro', message: 'Não foi possível cruzar os peixes.' })
+      }
+    } catch (e: any) {
+      console.error('Breeding error:', e)
+      alert({ type: 'error', title: 'Erro', message: `Falha no cruzamento: ${e?.message || 'Tente novamente.'}` })
+    } finally {
+      setBreeding(false)
     }
-    setBreeding(false)
   }
 
   // Use slightly wider sidePanel for breeding station
@@ -177,6 +184,8 @@ export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
         </View>
         </ScrollView>
       </View>
+
+      <LoadingOverlay visible={breeding} message="Cruzando peixes..." />
     </View>
   )
 }

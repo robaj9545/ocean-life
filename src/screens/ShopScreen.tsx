@@ -17,15 +17,31 @@ import { ShopCard } from '../components/ui/Cards'
 import { TabBar } from '../components/ui/Buttons'
 import { BalancePill } from '../components/ui/Stats'
 import { useAlert } from '../components/ui/Alert'
+import { ConfirmModal } from '../components/ui/ConfirmModal'
+import { LoadingOverlay } from '../components/ui/LoadingOverlay'
 import RenameFishModal from '../components/screens/RenameFishModal'
 import { getSpeciesName, getReviveCost, getSpeciesIcon, getSpeciesColor } from '../data/species'
 import { scale, sidePanel, fonts, spacing, radius, iconSize } from '../utils/responsive'
 
 type Tab = 'shop' | 'food' | 'cemetery' | 'decorations'
 
+// Pending action for confirm modal
+interface PendingAction {
+  title: string
+  message: string
+  price: number
+  accentColor?: string
+  destructive?: boolean
+  action: () => void | Promise<void>
+}
+
 export default function ShopScreen({ onClose }: { onClose?: () => void }) {
   const [activeTab, setActiveTab] = useState<Tab>('shop')
   const [showRenameModal, setShowRenameModal] = useState(false)
+  const [isBuying, setIsBuying] = useState(false)
+  const [loadingMsg, setLoadingMsg] = useState('')
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
+  
   const coins = useGameStore(state => state.coins)
   const level = useGameStore(state => state.level)
   const deadFishes = useGameStore(state => state.deadFishes)
@@ -43,71 +59,125 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
   ]
 
   const { alert } = useAlert()
-
   const buyNicknameItem = useGameStore(state => state.buyNicknameItem)
 
-  const buyFood = (price: number, amount: number, qty: number = 1) => {
+  // ─── Standardized async pattern ────────────────────────────────────────────
+  const executeWithLoading = async (msg: string, fn: () => void | Promise<void>) => {
+    setIsBuying(true)
+    setLoadingMsg(msg)
+    try {
+      await fn()
+    } catch (e: any) {
+      console.error('Shop action error:', e)
+      alert({ type: 'error', title: 'Erro', message: e?.message || 'Erro desconhecido' })
+    } finally {
+      setIsBuying(false)
+      setLoadingMsg('')
+    }
+  }
+
+  // ─── Buy Food ──────────────────────────────────────────────────────────────
+  const requestBuyFood = (price: number, amount: number, qty: number = 1) => {
     const totalCost = price * qty
     const totalAmount = amount * qty
-    if (coins >= totalCost) {
-      addCoins(-totalCost)
-      addFood(totalAmount)
-      incrementStat('buy_food', qty)
-      alert({ type: 'success', title: 'Comprado!', message: `${totalAmount} porções de ração adicionadas!` })
-    } else {
-      alert({ type: 'error', title: 'Saldo insuficiente', message: 'Você não tem moedas suficientes!' })
+    if (coins < totalCost) {
+      return alert({ type: 'error', title: 'Saldo insuficiente', message: 'Você não tem moedas suficientes!' })
     }
-  }
-
-  const handleBuyNickname = () => {
-    if (coins >= 1000) {
-      buyNicknameItem()
-      setShowRenameModal(true)
-    } else {
-      alert({ type: 'error', title: 'Saldo insuficiente', message: 'Você não tem moedas suficientes!' })
-    }
-  }
-
-  const buyFish = async (price: number, species: string, rarity: 'common' | 'rare' | 'epic' | 'legendary', qty: number = 1) => {
-    const totalCost = price * qty
-    if (coins >= totalCost) {
-      addCoins(-totalCost)
-      try {
-        // Create all fish data locally first
-        const fishDataArray = Array.from({ length: qty }, () => createFish({ species, rarity, stage: 'baby' }))
-        // Single batch insert to Supabase
-        const { data, error } = await fishService.createManyFishOnServer(fishDataArray)
-        if (error) {
-          console.error('createManyFishOnServer error:', error)
-        }
-        if (data && data.length > 0) {
-          data.forEach(fish => addFish(fish))
-          incrementStat('buy_fish', data.length)
-          const name = getSpeciesName(species)
-          alert({ type: 'success', title: 'Comprado!', message: data.length === 1 ? `Seu ${name} filhote já está no aquário!` : `${data.length}x ${name} filhotes adicionados ao aquário!` })
-        } else {
-          // Full refund on failure
-          addCoins(totalCost)
-          alert({ type: 'error', title: 'Erro', message: `Não foi possível salvar. ${error?.message || 'Tente novamente.'}` })
-        }
-      } catch (e: any) {
-        console.error('buyFish exception:', e)
-        addCoins(totalCost)
-        alert({ type: 'error', title: 'Erro', message: `Falha na compra: ${e?.message || 'Erro desconhecido'}` })
+    setPendingAction({
+      title: 'Comprar Ração',
+      message: `Deseja comprar ${totalAmount} porções de ração?`,
+      price: totalCost,
+      accentColor: '#FFA500',
+      action: () => {
+        addCoins(-totalCost)
+        addFood(totalAmount)
+        incrementStat('buy_food', qty)
+        alert({ type: 'success', title: 'Comprado!', message: `${totalAmount} porções de ração adicionadas!` })
       }
-    } else {
-      alert({ type: 'error', title: 'Saldo insuficiente', message: 'Você não tem moedas suficientes!' })
-    }
+    })
   }
 
-  const handleRevive = (ghost: any) => {
-    const cost = getReviveCost(ghost.species)
-    if (coins >= cost) {
-      reviveFish(ghost.id, cost)
-      alert({ type: 'success', title: 'Milagre!', message: 'Peixe ressuscitado com sucesso!' })
-    } else {
-      alert({ type: 'error', title: 'Saldo insuficiente', message: 'Você não tem moedas suficientes!' })
+  // ─── Buy Nickname ──────────────────────────────────────────────────────────
+  const requestBuyNickname = () => {
+    if (coins < 1000) {
+      return alert({ type: 'error', title: 'Saldo insuficiente', message: 'Você não tem moedas suficientes!' })
     }
+    setPendingAction({
+      title: 'Apelidar Peixe',
+      message: 'Deseja comprar um item de apelido para nomear um peixe?',
+      price: 1000,
+      accentColor: '#FF69B4',
+      action: () => {
+        buyNicknameItem()
+        setShowRenameModal(true)
+      }
+    })
+  }
+
+  // ─── Buy Fish (async) ─────────────────────────────────────────────────────
+  const requestBuyFish = (price: number, species: string, rarity: 'common' | 'rare' | 'epic' | 'legendary', qty: number = 1) => {
+    const totalCost = price * qty
+    const name = getSpeciesName(species)
+    if (coins < totalCost) {
+      return alert({ type: 'error', title: 'Saldo insuficiente', message: 'Você não tem moedas suficientes!' })
+    }
+    setPendingAction({
+      title: `Comprar ${name}`,
+      message: qty === 1
+        ? `Deseja comprar um ${name} filhote?`
+        : `Deseja comprar ${qty}x ${name} filhotes?`,
+      price: totalCost,
+      accentColor: getSpeciesColor(species) || '#00E5FF',
+      action: async () => {
+        await executeWithLoading('Comprando...', async () => {
+          addCoins(-totalCost)
+          const fishDataArray = Array.from({ length: qty }, () => createFish({ species, rarity, stage: 'baby' }))
+          const { data, error } = await fishService.createManyFishOnServer(fishDataArray)
+          if (error) console.error('createManyFishOnServer error:', error)
+          if (data && data.length > 0) {
+            data.forEach(fish => addFish(fish))
+            incrementStat('buy_fish', data.length)
+            alert({
+              type: 'success',
+              title: 'Comprado!',
+              message: data.length === 1
+                ? `Seu ${name} filhote já está no aquário!`
+                : `${data.length}x ${name} filhotes adicionados ao aquário!`
+            })
+          } else {
+            addCoins(totalCost)
+            alert({ type: 'error', title: 'Erro', message: `Não foi possível salvar. ${error?.message || 'Tente novamente.'}` })
+          }
+        })
+      }
+    })
+  }
+
+  // ─── Revive Fish ───────────────────────────────────────────────────────────
+  const requestRevive = (ghost: any) => {
+    const cost = getReviveCost(ghost.species)
+    const name = getSpeciesName(ghost.species)
+    if (coins < cost) {
+      return alert({ type: 'error', title: 'Saldo insuficiente', message: 'Você não tem moedas suficientes!' })
+    }
+    setPendingAction({
+      title: 'Reviver Peixe',
+      message: `Deseja ressuscitar seu ${name}?`,
+      price: cost,
+      accentColor: '#A855F7',
+      action: () => {
+        reviveFish(ghost.id, cost)
+        alert({ type: 'success', title: 'Milagre!', message: `${name} ressuscitado com sucesso!` })
+      }
+    })
+  }
+
+  // ─── Confirm handler ──────────────────────────────────────────────────────
+  const handleConfirm = async () => {
+    if (!pendingAction) return
+    const action = pendingAction.action
+    setPendingAction(null)
+    await action()
   }
 
   const renderSpeciesPreview = (species: string, size: number) => {
@@ -167,8 +237,8 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                 accentColor="#FF7043"
                 price={50}
                 preview={<ClownfishSVG size={scale(68)} />}
-                onBuy={(qty) => buyFish(50, 'clownfish', 'common', qty)}
-                disabled={coins < 50}
+                onBuy={(qty) => requestBuyFish(50, 'clownfish', 'common', qty)}
+                disabled={coins < 50 || isBuying}
                 showQuantity
               />
               <ShopCard
@@ -180,8 +250,8 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                 accentColor="#29B6F6"
                 price={150}
                 preview={<BlueTangSVG size={scale(76)} />}
-                onBuy={(qty) => buyFish(150, 'bluetang', 'common', qty)}
-                disabled={coins < 150}
+                onBuy={(qty) => requestBuyFish(150, 'bluetang', 'common', qty)}
+                disabled={coins < 150 || isBuying}
                 showQuantity
               />
               <ShopCard
@@ -193,8 +263,8 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                 accentColor="#8B008B"
                 price={500}
                 preview={<Bug color="#8B008B" size={iconSize.xxl} strokeWidth={1.5} />}
-                onBuy={(qty) => buyFish(500, 'spiderfish', 'rare', qty)}
-                disabled={coins < 500}
+                onBuy={(qty) => requestBuyFish(500, 'spiderfish', 'rare', qty)}
+                disabled={coins < 500 || isBuying}
                 locked={level < LEVEL_UNLOCKS.spiderfish}
                 lockedLevel={LEVEL_UNLOCKS.spiderfish}
                 showQuantity
@@ -208,8 +278,8 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                 accentColor="#B22222"
                 price={750}
                 preview={<Crown color="#B22222" size={iconSize.xxl} strokeWidth={1.5} />}
-                onBuy={(qty) => buyFish(750, 'lionfish', 'rare', qty)}
-                disabled={coins < 750}
+                onBuy={(qty) => requestBuyFish(750, 'lionfish', 'rare', qty)}
+                disabled={coins < 750 || isBuying}
                 locked={level < LEVEL_UNLOCKS.lionfish}
                 lockedLevel={LEVEL_UNLOCKS.lionfish}
                 showQuantity
@@ -223,8 +293,8 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                 accentColor="#00FA9A"
                 price={2000}
                 preview={<Flame color="#00FA9A" size={iconSize.xxl} strokeWidth={1.5} />}
-                onBuy={(qty) => buyFish(2000, 'dragonfish', 'epic', qty)}
-                disabled={coins < 2000}
+                onBuy={(qty) => requestBuyFish(2000, 'dragonfish', 'epic', qty)}
+                disabled={coins < 2000 || isBuying}
                 locked={level < LEVEL_UNLOCKS.dragonfish}
                 lockedLevel={LEVEL_UNLOCKS.dragonfish}
                 showQuantity
@@ -238,8 +308,8 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                 accentColor="#E0FFFF"
                 price={2500}
                 preview={<Ghost color="#E0FFFF" size={iconSize.xxl} strokeWidth={1.5} />}
-                onBuy={(qty) => buyFish(2500, 'ghostshark', 'epic', qty)}
-                disabled={coins < 2500}
+                onBuy={(qty) => requestBuyFish(2500, 'ghostshark', 'epic', qty)}
+                disabled={coins < 2500 || isBuying}
                 locked={level < LEVEL_UNLOCKS.ghostshark}
                 lockedLevel={LEVEL_UNLOCKS.ghostshark}
                 showQuantity
@@ -253,8 +323,8 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                 accentColor="#4B0082"
                 price={10000}
                 preview={<Anchor color="#4B0082" size={iconSize.xxl} strokeWidth={1.5} />}
-                onBuy={(qty) => buyFish(10000, 'leviathan', 'legendary', qty)}
-                disabled={coins < 10000}
+                onBuy={(qty) => requestBuyFish(10000, 'leviathan', 'legendary', qty)}
+                disabled={coins < 10000 || isBuying}
                 locked={level < LEVEL_UNLOCKS.leviathan}
                 lockedLevel={LEVEL_UNLOCKS.leviathan}
                 showQuantity
@@ -273,8 +343,8 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                 accentColor="#FF8C00"
                 price={30}
                 preview={<Drumstick color="#FF8C00" size={iconSize.xxl} strokeWidth={1.5} />}
-                onBuy={(qty) => buyFood(30, 10, qty)}
-                disabled={coins < 30}
+                onBuy={(qty) => requestBuyFood(30, 10, qty)}
+                disabled={coins < 30 || isBuying}
                 showQuantity
               />
               <ShopCard
@@ -286,8 +356,8 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                 accentColor="#FF4500"
                 price={120}
                 preview={<PackageOpen color="#FF4500" size={iconSize.xxl} strokeWidth={1.5} />}
-                onBuy={(qty) => buyFood(120, 50, qty)}
-                disabled={coins < 120}
+                onBuy={(qty) => requestBuyFood(120, 50, qty)}
+                disabled={coins < 120 || isBuying}
                 showQuantity
               />
               <ShopCard
@@ -299,8 +369,8 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                 accentColor="#FF1493"
                 price={400}
                 preview={<PackageOpen color="#FF1493" size={iconSize.xxl} strokeWidth={1.5} />}
-                onBuy={(qty) => buyFood(400, 200, qty)}
-                disabled={coins < 400}
+                onBuy={(qty) => requestBuyFood(400, 200, qty)}
+                disabled={coins < 400 || isBuying}
                 showQuantity
               />
             </>
@@ -333,7 +403,7 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                     dead
                     daysLeft={daysLeft}
                     preview={renderSpeciesPreview(ghost.species, scale(68))}
-                    onRevive={() => handleRevive(ghost)}
+                    onRevive={() => requestRevive(ghost)}
                   />
                 )
               })
@@ -351,8 +421,8 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                 accentColor="#FF69B4"
                 price={1000}
                 preview={<Tag color="#FF69B4" size={iconSize.xxl} strokeWidth={1.5} />}
-                onBuy={handleBuyNickname}
-                disabled={coins < 1000}
+                onBuy={() => requestBuyNickname()}
+                disabled={coins < 1000 || isBuying}
               />
             </>
           )}
@@ -361,6 +431,22 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
       </View>
       
       {showRenameModal && <RenameFishModal onClose={() => setShowRenameModal(false)} />}
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        visible={!!pendingAction}
+        title={pendingAction?.title || ''}
+        message={pendingAction?.message || ''}
+        price={pendingAction?.price}
+        accentColor={pendingAction?.accentColor}
+        destructive={pendingAction?.destructive}
+        confirmLabel="Comprar"
+        onConfirm={handleConfirm}
+        onCancel={() => setPendingAction(null)}
+      />
+
+      {/* Loading Overlay */}
+      <LoadingOverlay visible={isBuying} message={loadingMsg} />
     </View>
   )
 }

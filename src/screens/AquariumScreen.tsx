@@ -23,6 +23,7 @@ import ShopScreen from './ShopScreen'
 import { NavButton } from '../components/ui/Buttons'
 import { FishPanel, HungryBubble, CoinBubble } from '../components/ui/Overlays'
 import { CurrencyChip, LevelBadge } from '../components/ui/Stats'
+import { ConfirmModal } from '../components/ui/ConfirmModal'
 import { scale, verticalScale, spacing, radius, iconSize } from '../utils/responsive'
 
 export default function AquariumScreen() {
@@ -38,6 +39,7 @@ export default function AquariumScreen() {
   const dailyProgress = useGameStore(state => state.dailyProgress)
   const claimedMissions = useGameStore(state => state.claimedMissions)
   const [selectedFish, setSelectedFish] = useState<any>(null)
+  const [sellConfirm, setSellConfirm] = useState(false)
 
   const pendingDailies = DAILY_MISSIONS.filter(m => !claimedMissions.includes(m.id) && (dailyProgress[m.action] || 0) >= m.targetAmount).length
   const pendingAchv = ACHIEVEMENTS.filter(m => !claimedMissions.includes(m.id) && (stats[m.action as keyof typeof stats] || 0) >= m.targetAmount).length
@@ -73,10 +75,16 @@ export default function AquariumScreen() {
 
   const handleSellFish = () => {
     if (!selectedFish) return
+    setSellConfirm(true)
+  }
+
+  const confirmSell = () => {
+    if (!selectedFish) return
     const sellPrice = useGameStore.getState().getSellPrice(selectedFish)
     addCoins(sellPrice)
     useGameStore.getState().removeFish(selectedFish.id)
     setSelectedFish(null)
+    setSellConfirm(false)
   }
 
   // Responsive HUD positions
@@ -222,6 +230,18 @@ export default function AquariumScreen() {
            </View>
          </Modal>
        )}
+
+      {/* Sell Confirmation */}
+      <ConfirmModal
+        visible={sellConfirm}
+        title="Vender Peixe"
+        message={selectedFish ? `Deseja vender seu ${selectedFish.species}? Esta ação não pode ser desfeita.` : ''}
+        price={selectedFish ? useGameStore.getState().getSellPrice(selectedFish) : 0}
+        confirmLabel="Vender"
+        destructive
+        onConfirm={confirmSell}
+        onCancel={() => setSellConfirm(false)}
+      />
       
     </View>
   )
