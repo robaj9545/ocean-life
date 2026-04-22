@@ -1,22 +1,22 @@
 import { LinearGradient } from 'expo-linear-gradient'
-import { Lock, Mail, Waves, Fish, Shield } from 'lucide-react-native'
+import { Fish, Lock, Mail, Shield, Waves } from 'lucide-react-native'
 import React, { useEffect, useRef, useState } from 'react'
 import {
-  ActivityIndicator,
-  Animated,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  ScrollView,
-  useWindowDimensions,
+    ActivityIndicator,
+    Animated,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    useWindowDimensions,
+    View,
 } from 'react-native'
-import { supabase } from '../services/supabase'
 import { useAlert } from '../components/ui/Alert'
-import { scale, verticalScale, fonts, spacing, radius, iconSize } from '../utils/responsive'
+import { supabase } from '../services/supabase'
+import { fonts, iconSize, radius, scale, spacing } from '../utils/responsive'
 
 // ─── Ambient Bubble ───────────────────────────────────────────────────────────
 function AmbientBubble({ size, xPct, delay, screenHeight }: { size: number; xPct: number; delay: number; screenHeight: number }) {
@@ -192,7 +192,7 @@ export default function LoginScreen() {
     setLoading(true)
     const { error } = await supabase.auth.signUp({ email, password })
     if (error) alert({ type: 'error', title: 'Erro no Cadastro', message: error.message })
-    else alert({ type: 'success', title: 'Conta criada!', message: 'Bem-vindo ao Segredos do Mar!' })
+    else alert({ type: 'success', title: 'Conta criada!', message: 'Bem-vindo ao Ocean Life!' })
     setLoading(false)
   }
 
@@ -237,7 +237,7 @@ export default function LoginScreen() {
               <Waves color="#fff" size={iconSize.xl} strokeWidth={2} />
             </LinearGradient>
           </View>
-          <Text style={s.gameTitle}>Segredos do Mar</Text>
+          <Text style={s.gameTitle}>Ocean Life</Text>
           <Text style={s.gameTagline}>Seu paraíso aquático te espera</Text>
         </Animated.View>
 

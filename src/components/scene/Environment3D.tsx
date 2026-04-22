@@ -1,12 +1,12 @@
 
 
 
-import { Outlines, RoundedBox, Float, useTexture } from '@react-three/drei';
+import { Float, Outlines, RoundedBox, useTexture } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import React, { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
-// Helper for quick outlines fitting the Segredos do Mar cartoon aesthetic
+// Helper for quick outlines fitting the Ocean Life cartoon aesthetic
 const Stroke = ({ thickness = 0.05, color = "#1a1a1a", angle }: { thickness?: number, color?: string, angle?: number }) => (
   <Outlines thickness={thickness} color={color} angle={angle} />
 );
