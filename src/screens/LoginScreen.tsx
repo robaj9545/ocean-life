@@ -1,10 +1,9 @@
 import { LinearGradient } from 'expo-linear-gradient'
-import { Lock, Mail, Waves } from 'lucide-react-native'
+import { Lock, Mail, Waves, Fish, Shield } from 'lucide-react-native'
 import React, { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Animated,
-  Dimensions,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -13,14 +12,14 @@ import {
   TouchableOpacity,
   View,
   ScrollView,
+  useWindowDimensions,
 } from 'react-native'
 import { supabase } from '../services/supabase'
 import { useAlert } from '../components/ui/Alert'
-
-const { width, height } = Dimensions.get('window')
+import { scale, verticalScale, fonts, spacing, radius, iconSize } from '../utils/responsive'
 
 // ─── Ambient Bubble ───────────────────────────────────────────────────────────
-function AmbientBubble({ size, x, delay }: { size: number; x: number; delay: number }) {
+function AmbientBubble({ size, xPct, delay, screenHeight }: { size: number; xPct: number; delay: number; screenHeight: number }) {
   const floatAnim = useRef(new Animated.Value(0)).current
   const opacAnim = useRef(new Animated.Value(0)).current
 
@@ -41,18 +40,19 @@ function AmbientBubble({ size, x, delay }: { size: number; x: number; delay: num
     }, delay)
   }, [])
 
-  const translateY = floatAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -height * 1.1] })
+  const translateY = floatAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -screenHeight * 1.1] })
+  const scaledSize = scale(size)
 
   return (
     <Animated.View
       style={[
         ab.bubble,
         {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          left: x,
-          bottom: -size,
+          width: scaledSize,
+          height: scaledSize,
+          borderRadius: scaledSize / 2,
+          left: `${xPct}%` as any,
+          bottom: -scaledSize,
           opacity: opacAnim,
           transform: [{ translateY }],
         },
@@ -131,39 +131,41 @@ const inf = StyleSheet.create({
   wrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 52,
-    borderRadius: 14,
+    height: scale(48),
+    borderRadius: radius.md,
     borderWidth: 1.5,
-    paddingHorizontal: 14,
-    gap: 10,
-    marginBottom: 12,
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
+    marginBottom: spacing.md,
   },
   iconWrap: { opacity: 0.5 },
   iconFocused: { opacity: 1 },
   input: {
     flex: 1,
     color: '#fff',
-    fontSize: 15,
+    fontSize: fonts.lg,
     fontWeight: '600',
   },
 })
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+// ─── Bubble Config ────────────────────────────────────────────────────────────
 const BUBBLES = [
-  { size: 12, x: width * 0.1, delay: 0 },
-  { size: 22, x: width * 0.25, delay: 1200 },
-  { size: 8, x: width * 0.4, delay: 700 },
-  { size: 18, x: width * 0.55, delay: 2000 },
-  { size: 14, x: width * 0.7, delay: 400 },
-  { size: 28, x: width * 0.82, delay: 1600 },
-  { size: 10, x: width * 0.92, delay: 900 },
+  { size: 12, xPct: 10, delay: 0 },
+  { size: 22, xPct: 25, delay: 1200 },
+  { size: 8, xPct: 40, delay: 700 },
+  { size: 18, xPct: 55, delay: 2000 },
+  { size: 14, xPct: 70, delay: 400 },
+  { size: 28, xPct: 82, delay: 1600 },
+  { size: 10, xPct: 92, delay: 900 },
 ]
 
+// ─── Main ─────────────────────────────────────────────────────────────────────
 export default function LoginScreen() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [mode, setMode] = useState<'login' | 'signup'>('login')
+  const { width, height } = useWindowDimensions()
 
   const cardAnim = useRef(new Animated.Value(0)).current
   const logoAnim = useRef(new Animated.Value(0)).current
@@ -190,7 +192,7 @@ export default function LoginScreen() {
     setLoading(true)
     const { error } = await supabase.auth.signUp({ email, password })
     if (error) alert({ type: 'error', title: 'Erro no Cadastro', message: error.message })
-    else alert({ type: 'success', title: '✅ Conta criada!', message: 'Bem-vindo ao Segredos do Mar!' })
+    else alert({ type: 'success', title: 'Conta criada!', message: 'Bem-vindo ao Segredos do Mar!' })
     setLoading(false)
   }
 
@@ -206,7 +208,7 @@ export default function LoginScreen() {
 
       {/* Floating bubbles */}
       {BUBBLES.map((b, i) => (
-        <AmbientBubble key={i} size={b.size} x={b.x} delay={b.delay} />
+        <AmbientBubble key={i} size={b.size} xPct={b.xPct} delay={b.delay} screenHeight={height} />
       ))}
 
       {/* Subtle bottom sand */}
@@ -232,7 +234,7 @@ export default function LoginScreen() {
         >
           <View style={s.logoIconWrap}>
             <LinearGradient colors={['#00E5FF', '#0090FF']} style={s.logoGrad}>
-              <Waves color="#fff" size={32} strokeWidth={2} />
+              <Waves color="#fff" size={iconSize.xl} strokeWidth={2} />
             </LinearGradient>
           </View>
           <Text style={s.gameTitle}>Segredos do Mar</Text>
@@ -267,14 +269,14 @@ export default function LoginScreen() {
 
           {/* Inputs */}
           <InputField
-            icon={<Mail color="#00E5FF" size={18} strokeWidth={2} />}
+            icon={<Mail color="#00E5FF" size={iconSize.md} strokeWidth={2} />}
             placeholder="E-mail"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
           />
           <InputField
-            icon={<Lock color="#00E5FF" size={18} strokeWidth={2} />}
+            icon={<Lock color="#00E5FF" size={iconSize.md} strokeWidth={2} />}
             placeholder="Senha"
             value={password}
             onChangeText={setPassword}
@@ -299,15 +301,24 @@ export default function LoginScreen() {
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
               >
-                <Text style={s.submitText}>
-                  {mode === 'login' ? '🌊 Mergulhar' : '🐠 Criar Conta'}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                  {mode === 'login'
+                    ? <Waves color="#fff" size={iconSize.md} strokeWidth={2} />
+                    : <Fish color="#fff" size={iconSize.md} strokeWidth={2} />
+                  }
+                  <Text style={s.submitText}>
+                    {mode === 'login' ? 'Mergulhar' : 'Criar Conta'}
+                  </Text>
+                </View>
               </LinearGradient>
             </TouchableOpacity>
           )}
         </Animated.View>
 
-        <Text style={s.footer}>🔒 Seus dados estão seguros e criptografados</Text>
+        <View style={s.footerRow}>
+          <Shield color="rgba(255,255,255,0.25)" size={iconSize.xs} strokeWidth={2} />
+          <Text style={s.footer}>Seus dados estão seguros e criptografados</Text>
+        </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -318,16 +329,16 @@ const s = StyleSheet.create({
   container: { flex: 1 },
   kav: { flex: 1 },
   scroll: { flex: 1, width: '100%' },
-  scrollContent: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40, paddingHorizontal: 28 },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: spacing.xxxl, paddingHorizontal: spacing.xxl },
 
   // Logo
-  logoSection: { alignItems: 'center', marginBottom: 32, gap: 10 },
+  logoSection: { alignItems: 'center', marginBottom: spacing.xxl, gap: spacing.sm },
   logoIconWrap: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
+    width: scale(72),
+    height: scale(72),
+    borderRadius: radius.xxl,
     overflow: 'hidden',
-    marginBottom: 6,
+    marginBottom: spacing.xs,
     ...Platform.select({
       ios: { shadowColor: '#00E5FF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.7, shadowRadius: 16 },
       android: { elevation: 10 },
@@ -335,7 +346,7 @@ const s = StyleSheet.create({
   },
   logoGrad: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   gameTitle: {
-    fontSize: 28,
+    fontSize: fonts.hero,
     fontWeight: '900',
     color: '#fff',
     letterSpacing: 0.5,
@@ -344,7 +355,7 @@ const s = StyleSheet.create({
     textShadowRadius: 10,
   },
   gameTagline: {
-    fontSize: 14,
+    fontSize: fonts.base,
     color: 'rgba(255,255,255,0.5)',
     fontWeight: '600',
     letterSpacing: 0.3,
@@ -354,8 +365,8 @@ const s = StyleSheet.create({
   card: {
     width: '100%',
     backgroundColor: 'rgba(8,20,45,0.9)',
-    borderRadius: 24,
-    padding: 22,
+    borderRadius: radius.xxl,
+    padding: spacing.xl,
     borderWidth: 1,
     borderColor: 'rgba(0,229,255,0.15)',
     ...Platform.select({
@@ -368,35 +379,30 @@ const s = StyleSheet.create({
   modeToggle: {
     flexDirection: 'row',
     backgroundColor: 'rgba(0,0,0,0.4)',
-    borderRadius: 14,
-    padding: 4,
-    marginBottom: 20,
+    borderRadius: radius.md,
+    padding: spacing.xxs,
+    marginBottom: spacing.xl,
   },
-  modeBtn: { flex: 1, paddingVertical: 10, borderRadius: 11, alignItems: 'center' },
+  modeBtn: { flex: 1, paddingVertical: spacing.sm, borderRadius: radius.md - 2, alignItems: 'center' },
   modeBtnActive: { backgroundColor: 'rgba(0,229,255,0.15)', borderWidth: 1, borderColor: 'rgba(0,229,255,0.3)' },
-  modeBtnText: { fontSize: 14, fontWeight: '800', color: 'rgba(255,255,255,0.35)', letterSpacing: 0.3 },
+  modeBtnText: { fontSize: fonts.base, fontWeight: '800', color: 'rgba(255,255,255,0.35)', letterSpacing: 0.3 },
   modeBtnTextActive: { color: '#00E5FF' },
 
   // Submit
-  submitBtn: { borderRadius: 14, overflow: 'hidden', marginTop: 6 },
-  submitGrad: { paddingVertical: 15, alignItems: 'center', justifyContent: 'center' },
-  submitText: { color: '#fff', fontSize: 16, fontWeight: '900', letterSpacing: 0.5 },
+  submitBtn: { borderRadius: radius.md, overflow: 'hidden', marginTop: spacing.xs },
+  submitGrad: { paddingVertical: spacing.lg, alignItems: 'center', justifyContent: 'center' },
+  submitText: { color: '#fff', fontSize: fonts.lg, fontWeight: '900', letterSpacing: 0.5 },
 
   // Loading
-  loadingWrap: { alignItems: 'center', paddingVertical: 20, gap: 8 },
-  loadingText: { color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: '700' },
+  loadingWrap: { alignItems: 'center', paddingVertical: spacing.xl, gap: spacing.sm },
+  loadingText: { color: 'rgba(255,255,255,0.5)', fontSize: fonts.base, fontWeight: '700' },
 
   // Footer
+  footerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.xl },
   footer: {
     color: 'rgba(255,255,255,0.25)',
-    fontSize: 11,
+    fontSize: fonts.md,
     fontWeight: '600',
-    marginTop: 20,
     letterSpacing: 0.3,
   },
 })
-
-
-
-
-

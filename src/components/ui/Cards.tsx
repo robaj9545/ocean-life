@@ -8,7 +8,8 @@ import {
   View,
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
-import { Coins, ArrowUpCircle, Lock } from 'lucide-react-native'
+import { Coins, ArrowUpCircle, Lock, Clock } from 'lucide-react-native'
+import { scale, fonts, spacing, radius, iconSize } from '../../utils/responsive'
 
 export function ShopCard({
   title,
@@ -86,7 +87,7 @@ export function ShopCard({
 
       {locked && (
         <View style={sc.lockedOverlay}>
-          <Lock color="rgba(255,255,255,0.8)" size={22} strokeWidth={2.5} />
+          <Lock color="rgba(255,255,255,0.8)" size={iconSize.lg} strokeWidth={2.5} />
           <Text style={sc.lockedText}>Nível {lockedLevel}</Text>
         </View>
       )}
@@ -95,12 +96,17 @@ export function ShopCard({
         <Text style={[sc.title, dead && { textDecorationLine: 'line-through', opacity: 0.6 }]}>{title}</Text>
         <Text style={sc.desc} numberOfLines={2}>{description}</Text>
 
-        {dead && daysLeft !== undefined && <Text style={sc.daysLeft}>⏳ Expira em {daysLeft}d</Text>}
+        {dead && daysLeft !== undefined && (
+          <View style={sc.daysRow}>
+            <Clock color="rgba(168,85,247,0.8)" size={iconSize.xs} strokeWidth={2} />
+            <Text style={sc.daysLeft}>Expira em {daysLeft}d</Text>
+          </View>
+        )}
 
         {onBuy && !locked && (
           <TouchableOpacity style={[sc.btn, disabled && sc.btnDisabled]} onPress={onBuy} onPressIn={onPressIn} onPressOut={onPressOut} disabled={disabled} activeOpacity={0.85}>
             <LinearGradient colors={disabled ? ['#333', '#222'] : [accentColor, shadeColor(accentColor, -30)]} style={sc.btnGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-              <Coins color={disabled ? 'rgba(255,255,255,0.3)' : '#fff'} size={13} strokeWidth={2.5} />
+              <Coins color={disabled ? 'rgba(255,255,255,0.3)' : '#fff'} size={iconSize.xs} strokeWidth={2.5} />
               <Text style={[sc.btnText, disabled && { opacity: 0.3 }]}>{price}</Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -108,15 +114,15 @@ export function ShopCard({
         {locked && (
           <View style={[sc.btn, sc.btnLocked]}>
             <View style={[sc.btnGrad, { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
-              <Lock color="rgba(255,255,255,0.25)" size={13} strokeWidth={2.5} />
-              <Text style={[sc.btnText, { opacity: 0.25 }]}>🔒 Nv. {lockedLevel}</Text>
+              <Lock color="rgba(255,255,255,0.25)" size={iconSize.xs} strokeWidth={2.5} />
+              <Text style={[sc.btnText, { opacity: 0.25 }]}>Nv. {lockedLevel}</Text>
             </View>
           </View>
         )}
         {onRevive && (
           <TouchableOpacity style={sc.btn} onPress={onRevive} activeOpacity={0.85}>
             <LinearGradient colors={['#A855F7', '#7C3AED']} style={sc.btnGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-              <ArrowUpCircle color="#fff" size={13} strokeWidth={2.5} />
+              <ArrowUpCircle color="#fff" size={iconSize.xs} strokeWidth={2.5} />
               <Text style={sc.btnText}>{price}</Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -136,12 +142,11 @@ function shadeColor(hex: string, percent: number) {
 
 const sc = StyleSheet.create({
   wrap: {
-    // 💡 FLEX BASIS RESOLVES THE MODAL CLIPPING ISSUE:
-    flexBasis: 140, // Minimum logical size.
-    flexGrow: 1,     // It expands to fill the grid neatly!
-    maxWidth: 200,   // Prevents it from getting absurdly giant on iPads.
-    minWidth: 140,
-    backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 18, margin: 6, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    flexBasis: scale(130),
+    flexGrow: 1,
+    maxWidth: scale(190),
+    minWidth: scale(130),
+    backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: radius.xl, margin: spacing.xs, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.4, shadowRadius: 8 },
       android: { elevation: 6 },
@@ -156,20 +161,21 @@ const sc = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
-    gap: 4,
+    gap: spacing.xs,
   },
-  lockedText: { color: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: '900', letterSpacing: 0.5 },
+  lockedText: { color: 'rgba(255,255,255,0.8)', fontSize: fonts.sm, fontWeight: '900', letterSpacing: 0.5 },
   btnLocked: { opacity: 1 },
-  glowTop: { height: 3, width: '100%' },
-  rarityBadge: { position: 'absolute', top: 10, right: 8, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, borderWidth: 1, zIndex: 2 },
-  rarityText: { fontSize: 8, fontWeight: '900', letterSpacing: 0.8 },
-  preview: { height: 90, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  body: { padding: 12, gap: 6 },
-  title: { fontSize: 13, fontWeight: '900', color: '#fff', letterSpacing: 0.2 },
-  desc: { fontSize: 10, color: 'rgba(255,255,255,0.45)', lineHeight: 14, fontWeight: '600' },
-  daysLeft: { fontSize: 10, color: 'rgba(168,85,247,0.8)', fontWeight: '700' },
-  btn: { borderRadius: 12, overflow: 'hidden', marginTop: 4 },
+  glowTop: { height: scale(3), width: '100%' },
+  rarityBadge: { position: 'absolute', top: spacing.sm, right: spacing.sm, paddingHorizontal: spacing.xs, paddingVertical: spacing.xxs, borderRadius: radius.sm, borderWidth: 1, zIndex: 2 },
+  rarityText: { fontSize: fonts.xxs, fontWeight: '900', letterSpacing: 0.8 },
+  preview: { height: scale(85), alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  body: { padding: spacing.md, gap: spacing.xs },
+  title: { fontSize: fonts.base, fontWeight: '900', color: '#fff', letterSpacing: 0.2 },
+  desc: { fontSize: fonts.sm, color: 'rgba(255,255,255,0.45)', lineHeight: fonts.base + 2, fontWeight: '600' },
+  daysRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  daysLeft: { fontSize: fonts.sm, color: 'rgba(168,85,247,0.8)', fontWeight: '700' },
+  btn: { borderRadius: radius.md, overflow: 'hidden', marginTop: spacing.xs },
   btnDisabled: { opacity: 0.5 },
-  btnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, gap: 5 },
-  btnText: { color: '#fff', fontWeight: '900', fontSize: 13 },
+  btnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.sm, gap: spacing.xs },
+  btnText: { color: '#fff', fontWeight: '900', fontSize: fonts.base },
 })

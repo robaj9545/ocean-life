@@ -2,10 +2,9 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { Backpack, CheckSquare, Coins, Drumstick, Heart, ShoppingCart } from 'lucide-react-native'
 import React, { useEffect, useRef, useState } from 'react'
 import {
-  Dimensions,
   Modal,
   Platform,
-  StyleSheet, // can keep it for some fallbacks
+  StyleSheet,
   useWindowDimensions,
   View
 } from 'react-native'
@@ -24,8 +23,7 @@ import ShopScreen from './ShopScreen'
 import { NavButton } from '../components/ui/Buttons'
 import { FishPanel, HungryBubble, CoinBubble } from '../components/ui/Overlays'
 import { CurrencyChip, LevelBadge } from '../components/ui/Stats'
-
-const { width, height } = Dimensions.get('window')
+import { scale, verticalScale, spacing, radius, iconSize } from '../utils/responsive'
 
 export default function AquariumScreen() {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions()
@@ -75,12 +73,15 @@ export default function AquariumScreen() {
 
   const handleSellFish = () => {
     if (!selectedFish) return
-    // GAMEPLAY FIX: Dynamic sell price based on rarity/stage/DNA
     const sellPrice = useGameStore.getState().getSellPrice(selectedFish)
     addCoins(sellPrice)
     useGameStore.getState().removeFish(selectedFish.id)
     setSelectedFish(null)
   }
+
+  // Responsive HUD positions
+  const hudTop = Platform.OS === 'ios' ? verticalScale(48) : verticalScale(32)
+  const sideNavTop = hudTop + verticalScale(52)
 
   return (
     <View style={{ flex: 1, backgroundColor: '#020D1F' }}>
@@ -95,13 +96,13 @@ export default function AquariumScreen() {
       {/* Subtle top vignette */}
       <LinearGradient
         colors={['rgba(0,0,0,0.55)', 'transparent']}
-        style={[StyleSheet.absoluteFillObject, { height: height * 0.28 }]}
+        style={[StyleSheet.absoluteFillObject, { height: windowHeight * 0.28 }]}
       />
 
       {/* Bottom vignette */}
       <LinearGradient
         colors={['transparent', 'rgba(0,5,20,0.7)']}
-        style={[StyleSheet.absoluteFillObject, { top: height * 0.72 }]}
+        style={[StyleSheet.absoluteFillObject, { top: windowHeight * 0.72 }]}
       />
 
       {/* 3D scene */}
@@ -145,17 +146,17 @@ export default function AquariumScreen() {
       ))}
 
       {/* ── TOP HUD ── */}
-      <View style={styles.topHud}>
+      <View style={[styles.topHud, { top: hudTop, left: spacing.md, right: spacing.md }]}>
         {/* Left: coins + food */}
-        <View style={{ gap: 8 }}>
+        <View style={{ gap: spacing.sm }}>
           <CurrencyChip
-            icon={<Coins color="#FFD700" size={15} strokeWidth={2.5} />}
+            icon={<Coins color="#FFD700" size={iconSize.sm} strokeWidth={2.5} />}
             value={coins}
             color="#FFD700"
             onAdd={() => setActiveModal('Shop')}
           />
           <CurrencyChip
-            icon={<Drumstick color="#FF8C00" size={15} strokeWidth={2.5} />}
+            icon={<Drumstick color="#FF8C00" size={iconSize.sm} strokeWidth={2.5} />}
             value={foodAmount}
             color="#FF8C00"
             onAdd={() => setActiveModal('Shop')}
@@ -167,27 +168,27 @@ export default function AquariumScreen() {
       </View>
 
       {/* ── SIDE NAV (right rail) ── */}
-      <View style={styles.sideNav}>
+      <View style={[styles.sideNav, { right: spacing.md, top: sideNavTop, bottom: spacing.xl }]}>
         <NavButton
-          icon={<ShoppingCart color="#00E5FF" size={18} strokeWidth={2} />}
+          icon={<ShoppingCart color="#00E5FF" size={iconSize.md} strokeWidth={2} />}
           label="Loja"
           onPress={() => setActiveModal('Shop')}
           accent="#00E5FF"
         />
         <NavButton
-          icon={<Backpack color="#B29DFF" size={18} strokeWidth={2} />}
+          icon={<Backpack color="#B29DFF" size={iconSize.md} strokeWidth={2} />}
           label="Mochila"
           onPress={() => setActiveModal('Inventory')}
           accent="#B29DFF"
         />
         <NavButton
-          icon={<Heart color="#FF6B9D" size={18} strokeWidth={2} />}
+          icon={<Heart color="#FF6B9D" size={iconSize.md} strokeWidth={2} />}
           label="Criadouro"
           onPress={() => setActiveModal('Breeding')}
           accent="#FF6B9D"
         />
         <NavButton
-          icon={<CheckSquare color="#00E5A0" size={18} strokeWidth={2} />}
+          icon={<CheckSquare color="#00E5A0" size={iconSize.md} strokeWidth={2} />}
           label="Missões"
           onPress={() => setActiveModal('Missions')}
           accent="#00E5A0"
@@ -206,15 +207,12 @@ export default function AquariumScreen() {
         />
       )}
 
-      
-      
-
       {/* ── MODALS ── */}
 
       {activeModal && (
          <Modal transparent animationType="fade" visible={!!activeModal}>
            <View style={styles.modalBackdrop}>
-              <View style={[styles.modalContent, { width: '95%', maxWidth: 800, maxHeight: '90%', flex: 1, marginVertical: '5%' }]}>
+              <View style={[styles.modalContent, { width: '95%', maxWidth: scale(780), maxHeight: '90%', flex: 1, marginVertical: '5%' }]}>
                 {activeModal === 'Shop' && <ShopScreen onClose={() => setActiveModal(null)} />}
                 {activeModal === 'Inventory' && <InventoryScreen onClose={() => setActiveModal(null)} />}
                 {activeModal === 'Breeding' && <BreedingScreen onClose={() => setActiveModal(null)} />}
@@ -232,9 +230,6 @@ export default function AquariumScreen() {
 const styles = StyleSheet.create({
   topHud: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 54 : 36,
-    left: 14,
-    right: 14,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
@@ -248,77 +243,16 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: 'rgba(10, 30, 60, 0.9)',
-    borderRadius: 20,
+    borderRadius: radius.xl,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
     overflow: 'hidden'
   },
   sideNav: {
     position: 'absolute',
-    right: 14,
-    top: Platform.OS === 'ios' ? 100 : 80,
-    bottom: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
     zIndex: 10,
   },
-  fishCount: {
-    position: 'absolute',
-    bottom: 28,
-    alignSelf: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    zIndex: 5,
-  },
-  fishCountText: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-
-  
-  closePill: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignSelf: 'center',
-    marginBottom: 8,
-  },
-  closeX: {
-    position: 'absolute',
-    top: 14,
-    right: 16,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 30,
-  },
 })
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

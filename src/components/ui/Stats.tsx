@@ -9,6 +9,7 @@ import {
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Plus, Coins, Zap, ChevronUp } from 'lucide-react-native'
+import { scale, moderateScale, fontScale, spacing, fonts, radius, iconSize } from '../../utils/responsive'
 
 // ─── StatBar ─────────────────────────────────────────────────────────────────
 export function StatBar({
@@ -20,7 +21,7 @@ export function StatBar({
   label: string
   value: number
   color: string
-  icon: string
+  icon: React.ReactNode
 }) {
   const anim = useRef(new Animated.Value(0)).current
 
@@ -37,9 +38,9 @@ export function StatBar({
 
   return (
     <View style={sb.row}>
-      <Text style={sb.icon}>{icon}</Text>
+      <View style={sb.iconWrap}>{icon}</View>
       <View style={{ flex: 1 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.xs }}>
           <Text style={sb.label}>{label}</Text>
           <Text style={[sb.val, { color }]}>{Math.floor(value)}%</Text>
         </View>
@@ -53,13 +54,13 @@ export function StatBar({
 }
 
 const sb = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 10 },
-  icon: { fontSize: 16, width: 22, textAlign: 'center' },
-  label: { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.6)', letterSpacing: 0.8, textTransform: 'uppercase' },
-  val: { fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
-  track: { height: 8, backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 4, overflow: 'hidden', position: 'relative' },
-  fill: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 4 },
-  gloss: { position: 'absolute', top: 0, left: 0, right: 0, height: 4, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 4 },
+  row: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm, gap: spacing.sm },
+  iconWrap: { width: scale(22), alignItems: 'center', justifyContent: 'center' },
+  label: { fontSize: fonts.md, fontWeight: '700', color: 'rgba(255,255,255,0.6)', letterSpacing: 0.8, textTransform: 'uppercase' },
+  val: { fontSize: fonts.md, fontWeight: '900', letterSpacing: 0.5 },
+  track: { height: scale(8), backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: radius.xs, overflow: 'hidden', position: 'relative' },
+  fill: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: radius.xs },
+  gloss: { position: 'absolute', top: 0, left: 0, right: 0, height: scale(4), backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: radius.xs },
 })
 
 // ─── CurrencyChip ───────────────────────────────────────────────────────────
@@ -84,7 +85,7 @@ export function CurrencyChip({
       <View style={[cc.iconWrap, { backgroundColor: `${color}22` }]}>{icon}</View>
       <Text style={[cc.val, { color }]}>{Math.floor(value).toLocaleString()}</Text>
       <TouchableOpacity style={[cc.plus, { backgroundColor: color }]} onPress={onAdd} onPressIn={onPressIn} onPressOut={onPressOut}>
-        <Plus color="#fff" size={12} strokeWidth={3.5} />
+        <Plus color="#fff" size={iconSize.xs} strokeWidth={3.5} />
       </TouchableOpacity>
     </Animated.View>
   )
@@ -93,16 +94,16 @@ export function CurrencyChip({
 const cc = StyleSheet.create({
   chip: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.55)',
-    borderRadius: 24, paddingLeft: 6, paddingRight: 6, paddingVertical: 6,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', gap: 6,
+    borderRadius: radius.pill, paddingLeft: spacing.xs, paddingRight: spacing.xs, paddingVertical: spacing.xs,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', gap: spacing.xs,
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8 },
       android: { elevation: 6 },
     }),
   },
-  iconWrap: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  val: { fontSize: 15, fontWeight: '900', letterSpacing: 0.5, minWidth: 40 },
-  plus: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  iconWrap: { width: scale(26), height: scale(26), borderRadius: scale(13), alignItems: 'center', justifyContent: 'center' },
+  val: { fontSize: fonts.lg, fontWeight: '900', letterSpacing: 0.5, minWidth: scale(36) },
+  plus: { width: scale(20), height: scale(20), borderRadius: scale(10), alignItems: 'center', justifyContent: 'center' },
 })
 
 // ─── LevelBadge ─────────────────────────────────────────────────────────────
@@ -125,7 +126,7 @@ export function LevelBadge({ level, xp, onPress }: { level: number; xp: number; 
           </View>
           <Text style={lv.xpSub}>{xp} / {maxXp} XP</Text>
         </View>
-        <ChevronUp color="rgba(255,255,255,0.4)" size={14} />
+        <ChevronUp color="rgba(255,255,255,0.4)" size={iconSize.xs} />
       </View>
     </TouchableOpacity>
   )
@@ -133,35 +134,35 @@ export function LevelBadge({ level, xp, onPress }: { level: number; xp: number; 
 
 const lv = StyleSheet.create({
   wrap: {
-    backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', overflow: 'hidden',
+    backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: radius.xl, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', overflow: 'hidden',
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8 },
       android: { elevation: 6 },
     }),
   },
-  inner: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 8, gap: 8 },
-  circle: { width: 36, height: 36, borderRadius: 18, overflow: 'hidden' },
+  inner: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.xs, paddingHorizontal: spacing.sm, gap: spacing.sm },
+  circle: { width: scale(34), height: scale(34), borderRadius: scale(17), overflow: 'hidden' },
   circleGrad: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  lvNum: { color: '#fff', fontWeight: '900', fontSize: 16, letterSpacing: -0.5 },
-  xpCol: { flexDirection: 'column', gap: 3 },
-  xpLabel: { fontSize: 9, fontWeight: '800', color: '#00E5FF', letterSpacing: 1, textTransform: 'uppercase' },
-  barTrack: { width: 72, height: 5, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 3, overflow: 'hidden' },
-  barFill: { height: '100%', backgroundColor: '#00E5FF', borderRadius: 3 },
-  xpSub: { fontSize: 8, color: 'rgba(255,255,255,0.4)', fontWeight: '600' },
+  lvNum: { color: '#fff', fontWeight: '900', fontSize: fonts.lg, letterSpacing: -0.5 },
+  xpCol: { flexDirection: 'column', gap: spacing.xxs },
+  xpLabel: { fontSize: fonts.xxs, fontWeight: '800', color: '#00E5FF', letterSpacing: 1, textTransform: 'uppercase' },
+  barTrack: { width: scale(65), height: scale(5), backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: radius.xs, overflow: 'hidden' },
+  barFill: { height: '100%', backgroundColor: '#00E5FF', borderRadius: radius.xs },
+  xpSub: { fontSize: fontScale(8), color: 'rgba(255,255,255,0.4)', fontWeight: '600' },
 })
 
 // ─── BalancePill ────────────────────────────────────────────────────────────
 export function BalancePill({ coins }: { coins: number }) {
   return (
     <View style={bp.pill}>
-      <Coins color="#FFD700" size={14} strokeWidth={2.5} />
+      <Coins color="#FFD700" size={iconSize.xs} strokeWidth={2.5} />
       <Text style={bp.text}>{Math.floor(coins).toLocaleString()}</Text>
     </View>
   )
 }
 const bp = StyleSheet.create({
-  pill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,215,0,0.12)', borderWidth: 1, borderColor: 'rgba(255,215,0,0.25)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
-  text: { color: '#FFD700', fontSize: 13, fontWeight: '900' },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, backgroundColor: 'rgba(255,215,0,0.12)', borderWidth: 1, borderColor: 'rgba(255,215,0,0.25)', paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.xl },
+  text: { color: '#FFD700', fontSize: fonts.base, fontWeight: '900' },
 })
 
 // ─── MiniBar ────────────────────────────────────────────────────────────────
@@ -178,8 +179,8 @@ export function MiniBar({ value, color }: { value: number; color: string }) {
   )
 }
 const mb = StyleSheet.create({
-  track: { height: 4, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 2, overflow: 'hidden' },
-  fill: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 2 },
+  track: { height: scale(4), backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: radius.xxs, overflow: 'hidden', flex: 1 },
+  fill: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: radius.xxs },
 })
 
 // ─── XPRing ─────────────────────────────────────────────────────────────────
@@ -195,10 +196,12 @@ export function XPRing({ level, pct }: { level: number; pct: number }) {
   }, [])
 
   const rotate = spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] })
+  const ringSize = scale(130)
+  const innerSize = scale(120)
 
   return (
-    <Animated.View style={[xr.wrap, { transform: [{ scale: scaleAnim }] }]}>
-      <Animated.View style={[xr.spinRing, { transform: [{ rotate }] }]}>
+    <Animated.View style={[xr.wrap, { width: ringSize, height: ringSize, transform: [{ scale: scaleAnim }] }]}>
+      <Animated.View style={[xr.spinRing, { width: ringSize, height: ringSize, borderRadius: ringSize / 2, transform: [{ rotate }] }]}>
         <LinearGradient
           colors={['#00E5FF', 'transparent', '#B29DFF', 'transparent']}
           style={StyleSheet.absoluteFillObject}
@@ -206,9 +209,9 @@ export function XPRing({ level, pct }: { level: number; pct: number }) {
           end={{ x: 1, y: 1 }}
         />
       </Animated.View>
-      <View style={xr.inner}>
-        <LinearGradient colors={['#0A2A6E', '#0D4FA0']} style={xr.innerGrad}>
-          <Zap color="#FFD700" size={18} strokeWidth={2.5} style={{ marginBottom: 2 }} />
+      <View style={[xr.inner, { width: innerSize, height: innerSize, borderRadius: innerSize / 2 }]}>
+        <LinearGradient colors={['#0A2A6E', '#0D4FA0']} style={[xr.innerGrad, { borderRadius: innerSize / 2 - scale(4) }]}>
+          <Zap color="#FFD700" size={iconSize.md} strokeWidth={2.5} style={{ marginBottom: 2 }} />
           <Text style={xr.levelNum}>{level}</Text>
           <Text style={xr.levelLabel}>NÍVEL</Text>
         </LinearGradient>
@@ -217,10 +220,10 @@ export function XPRing({ level, pct }: { level: number; pct: number }) {
   )
 }
 const xr = StyleSheet.create({
-  wrap: { width: 140, height: 140, alignItems: 'center', justifyContent: 'center' },
-  spinRing: { position: 'absolute', width: 140, height: 140, borderRadius: 70, opacity: 0.8 },
-  inner: { width: 130, height: 130, borderRadius: 65, padding: 4, backgroundColor: '#020D1F' },
-  innerGrad: { flex: 1, borderRadius: 60, alignItems: 'center', justifyContent: 'center' },
-  levelNum: { fontSize: 48, fontWeight: '900', color: '#fff', letterSpacing: -2 },
-  levelLabel: { fontSize: 12, fontWeight: '900', color: 'rgba(255,255,255,0.5)', letterSpacing: 2 },
+  wrap: { alignItems: 'center', justifyContent: 'center' },
+  spinRing: { position: 'absolute', opacity: 0.8 },
+  inner: { padding: scale(4), backgroundColor: '#020D1F' },
+  innerGrad: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  levelNum: { fontSize: fonts.display, fontWeight: '900', color: '#fff', letterSpacing: -2 },
+  levelLabel: { fontSize: fonts.sm, fontWeight: '900', color: 'rgba(255,255,255,0.5)', letterSpacing: 2 },
 })

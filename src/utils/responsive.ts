@@ -1,20 +1,32 @@
 import { Dimensions, PixelRatio } from 'react-native';
 
 // ─── Base Reference ──────────────────────────────────────────────────────────
-// iPhone SE width (smallest common mobile) as the design reference
+// The game is played in LANDSCAPE mode.
+// In landscape, height is the constraining (smaller) dimension.
+// We use the shorter side for scaling to avoid blowing up sizes.
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const BASE_WIDTH = 375;
-const BASE_HEIGHT = 812;
+const SHORT_SIDE = Math.min(SCREEN_WIDTH, SCREEN_HEIGHT); // height in landscape
+const LONG_SIDE = Math.max(SCREEN_WIDTH, SCREEN_HEIGHT);  // width in landscape
+
+// Reference: iPhone SE landscape height (~375) as the design base
+const BASE_SHORT = 375;
+const BASE_LONG = 812;
 
 // ─── Scale Functions ─────────────────────────────────────────────────────────
 
-/** Scale based on screen width. Use for: widths, horizontal padding, gaps */
+/** Scale based on the SHORT side of the screen (height in landscape).
+ *  Use for: icon sizes, paddings, gaps, component dimensions */
 export const scale = (size: number): number =>
-  Math.round((SCREEN_WIDTH / BASE_WIDTH) * size);
+  Math.round((SHORT_SIDE / BASE_SHORT) * size);
 
-/** Scale based on screen height. Use for: heights, vertical padding, top offsets */
+/** Scale based on the LONG side (width in landscape).
+ *  Use for: horizontal widths that should stretch with screen width */
+export const horizontalScale = (size: number): number =>
+  Math.round((LONG_SIDE / BASE_LONG) * size);
+
+/** Vertical scale — same as scale() in landscape (based on short side) */
 export const verticalScale = (size: number): number =>
-  Math.round((SCREEN_HEIGHT / BASE_HEIGHT) * size);
+  Math.round((SHORT_SIDE / BASE_SHORT) * size);
 
 /** Moderate scale — less aggressive, ideal for fonts & icon sizes */
 export const moderateScale = (size: number, factor: number = 0.5): number =>
@@ -74,14 +86,14 @@ export const iconSize = {
 };
 
 // ─── Screen Breakpoint Helpers ───────────────────────────────────────────────
-export const isSmallScreen = SCREEN_WIDTH < 360;
-export const isMediumScreen = SCREEN_WIDTH >= 360 && SCREEN_WIDTH < 414;
-export const isLargeScreen = SCREEN_WIDTH >= 414;
-export const isTablet = SCREEN_WIDTH >= 600;
+export const isSmallScreen = SHORT_SIDE < 360;
+export const isMediumScreen = SHORT_SIDE >= 360 && SHORT_SIDE < 414;
+export const isLargeScreen = SHORT_SIDE >= 414;
+export const isTablet = SHORT_SIDE >= 600;
 
 // ─── Commonly used dimensions ────────────────────────────────────────────────
-export const screenWidth = SCREEN_WIDTH;
-export const screenHeight = SCREEN_HEIGHT;
+export const screenWidth = LONG_SIDE;   // always the longer side
+export const screenHeight = SHORT_SIDE; // always the shorter side
 
 /** Side panel width for modal screens — responsive with min/max clamp */
-export const sidePanel = Math.max(140, Math.min(scale(200), 280));
+export const sidePanel = Math.max(140, Math.min(horizontalScale(200), 280));

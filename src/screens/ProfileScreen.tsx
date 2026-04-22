@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient'
-import { Coins, Fish, LogOut, Skull, User, X } from 'lucide-react-native'
+import { Coins, Fish, LogOut, Medal, Skull, User, X } from 'lucide-react-native'
 import React, { useEffect, useState } from 'react'
 import {
   Animated,
@@ -13,6 +13,7 @@ import { supabase } from '../services/supabase'
 import { useGameStore } from '../store/useGameStore'
 import { XPRing, StatCard, AchievementRow } from '../components/screens/ProfileComponents'
 import { useAlert } from '../components/ui/Alert';
+import { scale, sidePanel, fonts, spacing, radius, iconSize } from '../utils/responsive'
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function ProfileScreen({ onClose }: { onClose?: () => void }) {
@@ -50,10 +51,10 @@ export default function ProfileScreen({ onClose }: { onClose?: () => void }) {
   return (
     <View style={s.containerRow}>
       {/* Left Sidebar */}
-      <View style={s.sidePanel}>
+      <View style={[s.sidePanel, { width: sidePanel }]}>
         <View style={s.headerLeft}>
           <View style={s.headerIcon}>
-            <User color="#00E5FF" size={18} strokeWidth={2} />
+            <User color="#00E5FF" size={iconSize.md} strokeWidth={2} />
           </View>
           <View>
             <Text style={s.title}>Meu Perfil</Text>
@@ -104,7 +105,7 @@ export default function ProfileScreen({ onClose }: { onClose?: () => void }) {
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
             >
-              <LogOut color="#FF6B6B" size={16} strokeWidth={2.5} />
+              <LogOut color="#FF6B6B" size={iconSize.sm} strokeWidth={2.5} />
               <Text style={s.logoutText}>Desconectar</Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -115,7 +116,7 @@ export default function ProfileScreen({ onClose }: { onClose?: () => void }) {
       <View style={s.mainPanel}>
         {/* Absolute Close Button */}
         <TouchableOpacity style={s.closeBtnAbs} onPress={onClose}>
-          <X color="rgba(255,255,255,0.6)" size={16} strokeWidth={2.5} />
+          <X color="rgba(255,255,255,0.6)" size={iconSize.sm} strokeWidth={2.5} />
         </TouchableOpacity>
 
       <ScrollView contentContainerStyle={s.body} showsVerticalScrollIndicator={false}>
@@ -124,21 +125,21 @@ export default function ProfileScreen({ onClose }: { onClose?: () => void }) {
         <View style={s.statsRow}>
           <StatCard
             index={0}
-            icon={<Coins color="#FFD700" size={18} strokeWidth={2} />}
+            icon={<Coins color="#FFD700" size={iconSize.md} strokeWidth={2} />}
             value={Math.floor(coins).toLocaleString()}
             label="Fortuna"
             color="#FFD700"
           />
           <StatCard
             index={1}
-            icon={<Fish color="#00E5A0" size={18} strokeWidth={2} />}
+            icon={<Fish color="#00E5A0" size={iconSize.md} strokeWidth={2} />}
             value={fishes.length}
             label="Vivos"
             color="#00E5A0"
           />
           <StatCard
             index={2}
-            icon={<Skull color="#A855F7" size={18} strokeWidth={2} />}
+            icon={<Skull color="#A855F7" size={iconSize.md} strokeWidth={2} />}
             value={deadFishes.length}
             label="Necrotério"
             color="#A855F7"
@@ -147,7 +148,10 @@ export default function ProfileScreen({ onClose }: { onClose?: () => void }) {
 
         {/* Achievements */}
         <View style={s.section}>
-          <Text style={s.sectionTitle}>🏅 Conquistas</Text>
+          <View style={s.sectionHeader}>
+            <Medal color="#FFD700" size={iconSize.sm} strokeWidth={2} />
+            <Text style={s.sectionTitle}>Conquistas</Text>
+          </View>
           <AchievementRow fishes={fishes} deadFishes={deadFishes} />
         </View>
 
@@ -159,64 +163,63 @@ export default function ProfileScreen({ onClose }: { onClose?: () => void }) {
 
 const s = StyleSheet.create({
   containerRow: { flex: 1, flexDirection: 'row', position: 'relative' },
-  sidePanel: { width: 250, backgroundColor: 'rgba(0,0,0,0.15)', borderRightWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  sidePanel: { backgroundColor: 'rgba(0,0,0,0.15)', borderRightWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
   mainPanel: { flex: 1 },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md },
   headerIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
+    width: scale(30),
+    height: scale(30),
+    borderRadius: radius.sm,
     backgroundColor: 'rgba(0,229,255,0.12)',
     borderWidth: 1,
     borderColor: 'rgba(0,229,255,0.25)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { fontSize: 13, fontWeight: '900', color: '#fff', letterSpacing: 0.3 },
-  subtitle: { fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: '700', letterSpacing: 0.5, marginTop: 1 },
-  headerRight: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10, padding: 14, paddingBottom: 0 },
+  title: { fontSize: fonts.base, fontWeight: '900', color: '#fff', letterSpacing: 0.3 },
+  subtitle: { fontSize: fonts.xxs, color: 'rgba(255,255,255,0.4)', fontWeight: '700', letterSpacing: 0.5, marginTop: 1 },
   closeBtnAbs: {
     position: 'absolute',
-    top: 14,
-    right: 14,
-    width: 28,
-    height: 28,
-    borderRadius: 15,
+    top: spacing.md,
+    right: spacing.md,
+    width: scale(28),
+    height: scale(28),
+    borderRadius: scale(14),
     backgroundColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 99,
   },
-  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginHorizontal: 14 },
-  leftContent: { flexGrow: 1, padding: 14, justifyContent: 'space-between', gap: 14, paddingBottom: 20 },
+  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginHorizontal: spacing.md },
+  leftContent: { flexGrow: 1, padding: spacing.md, justifyContent: 'space-between', gap: spacing.md, paddingBottom: spacing.xl },
 
-  body: { padding: 14, paddingTop: 40, gap: 12, paddingBottom: 40 },
+  body: { padding: spacing.md, paddingTop: spacing.xxxl, gap: spacing.md, paddingBottom: spacing.xxxl },
 
   // Hero
   hero: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: 20,
+    borderRadius: radius.xl,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
-    padding: 16,
-    gap: 16,
+    padding: spacing.lg,
+    gap: spacing.lg,
     overflow: 'hidden',
   },
-  heroInfo: { flex: 1, gap: 10 },
-  emailRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  emailDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#00E5A0' },
-  emailText: { fontSize: 11, color: 'rgba(255,255,255,0.6)', fontWeight: '700', flex: 1 },
+  heroInfo: { flex: 1, gap: spacing.sm },
+  emailRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  emailDot: { width: scale(7), height: scale(7), borderRadius: scale(4), backgroundColor: '#00E5A0' },
+  emailText: { fontSize: fonts.md, color: 'rgba(255,255,255,0.6)', fontWeight: '700', flex: 1 },
 
-  xpSection: { gap: 5 },
+  xpSection: { gap: spacing.xs },
   xpLabelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  xpLabel: { fontSize: 9, fontWeight: '800', color: 'rgba(255,255,255,0.4)', letterSpacing: 1, textTransform: 'uppercase' },
-  xpVal: { fontSize: 10, fontWeight: '900', color: '#00E5FF' },
+  xpLabel: { fontSize: fonts.xxs, fontWeight: '800', color: 'rgba(255,255,255,0.4)', letterSpacing: 1, textTransform: 'uppercase' },
+  xpVal: { fontSize: fonts.sm, fontWeight: '900', color: '#00E5FF' },
   xpTrack: {
-    height: 8,
+    height: scale(8),
     backgroundColor: 'rgba(0,0,0,0.4)',
-    borderRadius: 4,
+    borderRadius: radius.xs,
     overflow: 'hidden',
     position: 'relative',
   },
@@ -225,7 +228,7 @@ const s = StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    borderRadius: 4,
+    borderRadius: radius.xs,
     backgroundColor: '#00E5FF',
   },
   xpGloss: {
@@ -233,18 +236,19 @@ const s = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 4,
+    height: scale(4),
     backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 4,
+    borderRadius: radius.xs,
   },
 
   // Stats
-  statsRow: { flexDirection: 'row', gap: 8 },
+  statsRow: { flexDirection: 'row', gap: spacing.sm },
 
   // Section
-  section: { gap: 8 },
+  section: { gap: spacing.sm },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   sectionTitle: {
-    fontSize: 11,
+    fontSize: fonts.md,
     fontWeight: '800',
     color: 'rgba(255,255,255,0.5)',
     letterSpacing: 0.8,
@@ -252,21 +256,16 @@ const s = StyleSheet.create({
   },
 
   // Logout
-  logoutBtn: { borderRadius: 14, overflow: 'hidden', marginTop: 'auto' as any },
+  logoutBtn: { borderRadius: radius.md, overflow: 'hidden', marginTop: 'auto' as any },
   logoutGrad: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    gap: 8,
+    paddingVertical: spacing.md,
+    gap: spacing.sm,
     borderWidth: 1,
     borderColor: 'rgba(220,20,60,0.3)',
-    borderRadius: 14,
+    borderRadius: radius.md,
   },
-  logoutText: { color: '#FF6B6B', fontWeight: '900', fontSize: 14, letterSpacing: 0.8, textTransform: 'uppercase' },
+  logoutText: { color: '#FF6B6B', fontWeight: '900', fontSize: fonts.base, letterSpacing: 0.8, textTransform: 'uppercase' },
 })
-
-
-
-
-

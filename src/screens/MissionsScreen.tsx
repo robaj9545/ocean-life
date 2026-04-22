@@ -10,6 +10,7 @@ import { CheckSquare, X, Trophy } from 'lucide-react-native'
 import { MissionCard } from '../components/screens/MissionsComponents'
 import { DAILY_MISSIONS, ACHIEVEMENTS } from '../data/missions'
 import { useGameStore } from '../store/useGameStore'
+import { scale, sidePanel, fonts, spacing, radius, iconSize } from '../utils/responsive'
 
 export default function MissionsScreen({ onClose }: { onClose?: () => void }) {
   const [activeTab, setActiveTab] = useState<'daily' | 'achievements'>('daily')
@@ -57,12 +58,12 @@ export default function MissionsScreen({ onClose }: { onClose?: () => void }) {
   return (
     <View style={s.containerRow}>
       {/* Left Sidebar */}
-      <View style={s.sidePanel}>
+      <View style={[s.sidePanel, { width: sidePanel }]}>
         <View style={s.headerLeft}>
           <View style={s.headerIcon}>
-            <CheckSquare color="#00E5A0" size={18} strokeWidth={2} />
+            <CheckSquare color="#00E5A0" size={iconSize.md} strokeWidth={2} />
           </View>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={s.title}>Quadro de Missões</Text>
             <Text style={s.subtitle}>Tarefas diárias e raras</Text>
           </View>
@@ -76,14 +77,14 @@ export default function MissionsScreen({ onClose }: { onClose?: () => void }) {
               style={[s.tab, activeTab === 'daily' && s.tabActive]} 
               onPress={() => setActiveTab('daily')}
             >
-              <CheckSquare size={14} color={activeTab === 'daily' ? '#00E5FF' : 'rgba(255,255,255,0.4)'} />
+              <CheckSquare size={iconSize.xs} color={activeTab === 'daily' ? '#00E5FF' : 'rgba(255,255,255,0.4)'} />
               <Text style={[s.tabText, activeTab === 'daily' && s.tabTextActive]}>Diárias</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={[s.tab, activeTab === 'achievements' && s.tabActive]} 
               onPress={() => setActiveTab('achievements')}
             >
-              <Trophy size={14} color={activeTab === 'achievements' ? '#FFD700' : 'rgba(255,255,255,0.4)'} />
+              <Trophy size={iconSize.xs} color={activeTab === 'achievements' ? '#FFD700' : 'rgba(255,255,255,0.4)'} />
               <Text style={[s.tabText, activeTab === 'achievements' && s.tabTextActive]}>Conquistas</Text>
             </TouchableOpacity>
           </View>
@@ -94,7 +95,7 @@ export default function MissionsScreen({ onClose }: { onClose?: () => void }) {
       <View style={s.mainPanel}>
         {/* Absolute Close Button */}
         <TouchableOpacity style={s.closeBtnAbs} onPress={onClose}>
-          <X color="rgba(255,255,255,0.6)" size={16} strokeWidth={2.5} />
+          <X color="rgba(255,255,255,0.6)" size={iconSize.sm} strokeWidth={2.5} />
         </TouchableOpacity>
 
         <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
@@ -108,58 +109,57 @@ export default function MissionsScreen({ onClose }: { onClose?: () => void }) {
 
 const s = StyleSheet.create({
   containerRow: { flex: 1, flexDirection: 'row', position: 'relative' },
-  sidePanel: { width: 250, backgroundColor: 'rgba(0,0,0,0.15)', borderRightWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  sidePanel: { backgroundColor: 'rgba(0,0,0,0.15)', borderRightWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
   mainPanel: { flex: 1 },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md },
   headerIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
+    width: scale(30),
+    height: scale(30),
+    borderRadius: radius.sm,
     backgroundColor: 'rgba(0,229,160,0.15)',
     borderWidth: 1,
     borderColor: 'rgba(0,229,160,0.3)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { fontSize: 13, fontWeight: '900', color: '#fff', letterSpacing: 0.3 },
-  subtitle: { fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: '700', letterSpacing: 0.5, marginTop: 1 },
-  headerRight: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10, padding: 14, paddingBottom: 0 },
+  title: { fontSize: fonts.base, fontWeight: '900', color: '#fff', letterSpacing: 0.3 },
+  subtitle: { fontSize: fonts.xxs, color: 'rgba(255,255,255,0.4)', fontWeight: '700', letterSpacing: 0.5, marginTop: 1 },
   closeBtnAbs: {
     position: 'absolute',
-    top: 14,
-    right: 14,
-    width: 28,
-    height: 28,
-    borderRadius: 15,
+    top: spacing.md,
+    right: spacing.md,
+    width: scale(28),
+    height: scale(28),
+    borderRadius: scale(14),
     backgroundColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 99,
   },
-  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginHorizontal: 14 },
+  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginHorizontal: spacing.md },
   
   tabsWrap: {
-    paddingHorizontal: 10,
-    paddingTop: 10,
+    paddingHorizontal: spacing.sm,
+    paddingTop: spacing.sm,
     flex: 1,
   },
   tabs: {
     flexDirection: 'column',
     backgroundColor: 'transparent',
-    gap: 4,
+    gap: spacing.xs,
   },
   tab: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 8,
-    gap: 6,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.sm,
+    gap: spacing.xs,
   },
   tabActive: { backgroundColor: 'rgba(255,255,255,0.1)' },
-  tabText: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' },
+  tabText: { fontSize: fonts.sm, fontWeight: '700', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' },
   tabTextActive: { color: '#fff' },
 
-  scroll: { padding: 14, paddingTop: 40, paddingBottom: 40 },
+  scroll: { padding: spacing.md, paddingTop: spacing.xxxl, paddingBottom: spacing.xxxl },
 })

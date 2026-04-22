@@ -1,4 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient'
+import { Heart, HeartOff, Check } from 'lucide-react-native'
 import React, { useEffect, useRef } from 'react'
 import {
   Animated,
@@ -11,18 +12,17 @@ import {
 import BlueTangSVG from '../../components/fishes/BlueTang'
 import ClownfishSVG from '../../components/fishes/Clownfish'
 import { FishEntity } from '../../store/useGameStore'
+import { getSpeciesName, getSpeciesIcon, getSpeciesColor } from '../../data/species'
+import { scale, fonts, spacing, radius, iconSize } from '../../utils/responsive'
 
 const renderPreview = (species: string, size: number) => {
   if (species === 'bluetang') return <BlueTangSVG size={size} />
-  if (species === 'spiderfish') return <Text style={{fontSize: size * 0.7}}>🕷️</Text>
-  if (species === 'lionfish') return <Text style={{fontSize: size * 0.7}}>🦁</Text>
-  if (species === 'dragonfish') return <Text style={{fontSize: size * 0.7}}>🐉</Text>
-  if (species === 'ghostshark') return <Text style={{fontSize: size * 0.7}}>👻</Text>
-  if (species === 'leviathan') return <Text style={{fontSize: size * 0.7}}>🦑</Text>
+  if (species === 'clownfish') return <ClownfishSVG size={size} />
+  const Icon = getSpeciesIcon(species)
+  const color = getSpeciesColor(species)
+  if (Icon) return <Icon color={color} size={size * 0.7} strokeWidth={1.5} />
   return <ClownfishSVG size={size} />
 }
-
-const speciesNameMap: Record<string, string> = { clownfish: 'Palhaço', bluetang: 'Cirurgião', spiderfish: 'Peixe Aranha', lionfish: 'Peixe-Leão', dragonfish: 'Peixe-Dragão', ghostshark: 'Tubarão-Fantasma', leviathan: 'Leviatã' }
 
 // ─── Pulsing Heart ───────────────────────────────────────────────────────────
 export function PulseHeart({ active }: { active: boolean }) {
@@ -50,25 +50,25 @@ export function PulseHeart({ active }: { active: boolean }) {
   }, [active])
 
   const glowOp = glow.interpolate({ inputRange: [0, 1], outputRange: [0, 0.6] })
+  const heartSize = scale(46)
 
   return (
-    <View style={{ alignItems: 'center', justifyContent: 'center', width: 50, height: 50 }}>
-      <Animated.View style={[ph.glow, { opacity: glowOp, transform: [{ scale: pulse }] }]} />
-      <Animated.Text style={[ph.heart, { transform: [{ scale: pulse }] }]}>
-        {active ? '💕' : '🤍'}
-      </Animated.Text>
+    <View style={{ alignItems: 'center', justifyContent: 'center', width: heartSize, height: heartSize }}>
+      <Animated.View style={[ph.glow, { width: heartSize, height: heartSize, borderRadius: heartSize / 2, opacity: glowOp, transform: [{ scale: pulse }] }]} />
+      <Animated.View style={{ transform: [{ scale: pulse }], zIndex: 1 }}>
+        {active
+          ? <Heart color="#FF69B4" size={iconSize.lg} strokeWidth={2} fill="#FF69B4" />
+          : <HeartOff color="rgba(255,255,255,0.3)" size={iconSize.lg} strokeWidth={2} />
+        }
+      </Animated.View>
     </View>
   )
 }
 const ph = StyleSheet.create({
   glow: {
     position: 'absolute',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
     backgroundColor: '#FF69B4',
   },
-  heart: { fontSize: 28, zIndex: 1 },
 })
 
 // ─── Fish Slot ────────────────────────────────────────────────────────────────
@@ -87,20 +87,22 @@ export function FishSlot({ fish, label }: { fish: FishEntity | undefined; label:
   }, [fish])
 
   const emptyOp = shimmer.interpolate({ inputRange: [0, 1], outputRange: [0.4, 0.9] })
+  const slotW = scale(75)
+  const slotH = scale(85)
 
   return (
     <View style={fs.wrap}>
       <Text style={fs.label}>{label}</Text>
       {fish ? (
-        <View style={fs.filled}>
+        <View style={[fs.filled, { width: slotW, height: slotH }]}>
           <LinearGradient colors={['rgba(255,105,180,0.2)', 'rgba(100,149,237,0.2)']} style={fs.grad} />
-          {renderPreview(fish.species, 56)}
+          {renderPreview(fish.species, scale(52))}
           <Text style={fs.species} numberOfLines={1}>
-            {fish.nickname || speciesNameMap[fish.species] || fish.species}
+            {fish.nickname || getSpeciesName(fish.species)}
           </Text>
         </View>
       ) : (
-        <Animated.View style={[fs.empty, { opacity: emptyOp }]}>
+        <Animated.View style={[fs.empty, { width: slotW, height: slotH, opacity: emptyOp }]}>
           <Text style={fs.qmark}>?</Text>
         </Animated.View>
       )}
@@ -109,37 +111,33 @@ export function FishSlot({ fish, label }: { fish: FishEntity | undefined; label:
 }
 
 const fs = StyleSheet.create({
-  wrap: { alignItems: 'center', gap: 6 },
+  wrap: { alignItems: 'center', gap: spacing.xs },
   label: {
-    fontSize: 9,
+    fontSize: fonts.xxs,
     fontWeight: '800',
     color: 'rgba(255,255,255,0.45)',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
   filled: {
-    width: 80,
-    height: 90,
-    borderRadius: 16,
+    borderRadius: radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
     borderColor: 'rgba(255,105,180,0.5)',
     overflow: 'hidden',
-    gap: 2,
+    gap: spacing.xxs,
     backgroundColor: 'rgba(255,255,255,0.05)',
   },
   grad: { ...StyleSheet.absoluteFillObject },
   species: {
     color: 'rgba(255,255,255,0.7)',
-    fontSize: 9,
+    fontSize: fonts.xxs,
     fontWeight: '700',
     letterSpacing: 0.5,
   },
   empty: {
-    width: 80,
-    height: 90,
-    borderRadius: 16,
+    borderRadius: radius.lg,
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.15)',
     borderStyle: 'dashed',
@@ -147,7 +145,7 @@ const fs = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.03)',
   },
-  qmark: { fontSize: 28, color: 'rgba(255,255,255,0.25)' },
+  qmark: { fontSize: fonts.xxl, color: 'rgba(255,255,255,0.25)' },
 })
 
 // ─── Fish Card ────────────────────────────────────────────────────────────────
@@ -181,13 +179,13 @@ export function FishCard({
     Animated.spring(pressAnim, { toValue: 1, useNativeDriver: true, tension: 300 }).start()
 
   return (
-    <Animated.View style={{ flexBasis: '28%', flexGrow: 1, maxWidth: 120, margin: 4, transform: [{ scale: scaleAnim }, { scale: pressAnim }] }}>
+    <Animated.View style={{ flexBasis: '28%', flexGrow: 1, maxWidth: scale(115), margin: spacing.xxs, transform: [{ scale: scaleAnim }, { scale: pressAnim }] }}>
       <TouchableOpacity
         onPress={onPress}
         onPressIn={onPressIn}
         onPressOut={onPressOut}
         activeOpacity={1}
-        style={[fc.card, isSelected && fc.cardSel]}
+        style={[fcc.card, isSelected && fcc.cardSel]}
       >
         {isSelected && (
           <LinearGradient
@@ -195,15 +193,15 @@ export function FishCard({
             style={StyleSheet.absoluteFillObject}
           />
         )}
-        <View style={fc.preview}>
-          {renderPreview(fish.species, 40)}
+        <View style={fcc.preview}>
+          {renderPreview(fish.species, scale(38))}
         </View>
-        <Text style={fc.name} numberOfLines={1}>
-          {fish.nickname || speciesNameMap[fish.species] || fish.species}
+        <Text style={fcc.name} numberOfLines={1}>
+          {fish.nickname || getSpeciesName(fish.species)}
         </Text>
         {isSelected && (
-          <View style={fc.checkBadge}>
-            <Text style={{ fontSize: 10 }}>✓</Text>
+          <View style={fcc.checkBadge}>
+            <Check color="#fff" size={iconSize.xs} strokeWidth={3} />
           </View>
         )}
       </TouchableOpacity>
@@ -211,12 +209,12 @@ export function FishCard({
   )
 }
 
-const fc = StyleSheet.create({
+const fcc = StyleSheet.create({
   card: {
     width: '100%',
     aspectRatio: 0.9,
-    borderRadius: 14,
-    padding: 8,
+    borderRadius: radius.md,
+    padding: spacing.sm,
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1.5,
@@ -233,21 +231,21 @@ const fc = StyleSheet.create({
   },
   preview: {
     width: '100%',
-    height: 50,
-    borderRadius: 10,
+    height: scale(46),
+    borderRadius: radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.05)',
-    marginBottom: 5,
+    marginBottom: spacing.xs,
   },
-  name: { fontSize: 10, fontWeight: '800', color: 'rgba(255,255,255,0.7)', letterSpacing: 0.3 },
+  name: { fontSize: fonts.sm, fontWeight: '800', color: 'rgba(255,255,255,0.7)', letterSpacing: 0.3 },
   checkBadge: {
     position: 'absolute',
-    top: 5,
-    right: 5,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    top: scale(5),
+    right: scale(5),
+    width: scale(18),
+    height: scale(18),
+    borderRadius: scale(9),
     backgroundColor: '#FF69B4',
     alignItems: 'center',
     justifyContent: 'center',

@@ -61,7 +61,10 @@ export function MissionCard({
         <Text style={[s.desc, isClaimed && s.textDim]}>{mission.description}</Text>
         
         <View style={s.rewards}>
-          <Text style={[s.rewardText, isClaimed && s.textDim]}>+{mission.rewardCoins} 🪙</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+            <Text style={[s.rewardText, isClaimed && s.textDim]}>+{mission.rewardCoins}</Text>
+            <Coins color={isClaimed ? 'rgba(255,255,255,0.3)' : '#FFD700'} size={12} strokeWidth={2.5} />
+          </View>
           <Text style={[s.rewardText, isClaimed && s.textDim]}>+{mission.rewardXp} XP</Text>
         </View>
 

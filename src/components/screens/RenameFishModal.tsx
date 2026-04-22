@@ -4,6 +4,8 @@ import { X, CheckCircle2 } from 'lucide-react-native'
 import { useGameStore } from '../../store/useGameStore'
 import ClownfishSVG from '../fishes/Clownfish'
 import BlueTangSVG from '../fishes/BlueTang'
+import { getSpeciesIcon, getSpeciesColor } from '../../data/species'
+import { scale, fonts, spacing, radius, iconSize } from '../../utils/responsive'
 
 export default function RenameFishModal({ onClose }: { onClose: () => void }) {
   const fishes = useGameStore(state => state.fishes)
@@ -23,14 +25,12 @@ export default function RenameFishModal({ onClose }: { onClose: () => void }) {
   }
 
   const renderFishPreview = (species: string) => {
-    if (species === 'clownfish') return <ClownfishSVG size={40} />
-    if (species === 'bluetang') return <BlueTangSVG size={45} />
-    if (species === 'spiderfish') return <Text style={{fontSize:30}}>🕷️</Text>
-    if (species === 'lionfish') return <Text style={{fontSize:30}}>🦁</Text>
-    if (species === 'dragonfish') return <Text style={{fontSize:30}}>🐉</Text>
-    if (species === 'ghostshark') return <Text style={{fontSize:30}}>👻</Text>
-    if (species === 'leviathan') return <Text style={{fontSize:30}}>🦑</Text>
-    return <ClownfishSVG size={40} />
+    if (species === 'clownfish') return <ClownfishSVG size={scale(38)} />
+    if (species === 'bluetang') return <BlueTangSVG size={scale(42)} />
+    const Icon = getSpeciesIcon(species)
+    const color = getSpeciesColor(species)
+    if (Icon) return <Icon color={color} size={iconSize.xl} strokeWidth={1.5} />
+    return <ClownfishSVG size={scale(38)} />
   }
 
   return (
@@ -38,10 +38,10 @@ export default function RenameFishModal({ onClose }: { onClose: () => void }) {
       <View style={s.overlay}>
         <View style={s.modal}>
           <TouchableOpacity style={s.closeBtn} onPress={onClose}>
-            <X color="#fff" size={24} />
+            <X color="#fff" size={iconSize.lg} />
           </TouchableOpacity>
           
-          <Text style={s.title}>Usar "Apelidar Peixe"</Text>
+          <Text style={s.title}>Apelidar Peixe</Text>
           <Text style={s.subtitle}>Você tem {nicknameItemsCount} item(s) de apelido. Escolha um peixe:</Text>
           
           <ScrollView style={s.list} horizontal showsHorizontalScrollIndicator={false}>
@@ -61,7 +61,7 @@ export default function RenameFishModal({ onClose }: { onClose: () => void }) {
               )
             })}
             {fishes.length === 0 && (
-              <Text style={{color: '#aaa', marginTop: 20}}>Nenhum peixe vivo no aquário.</Text>
+              <Text style={{color: '#aaa', marginTop: spacing.xl}}>Nenhum peixe vivo no aquário.</Text>
             )}
           </ScrollView>
 
@@ -81,7 +81,7 @@ export default function RenameFishModal({ onClose }: { onClose: () => void }) {
                 onPress={handleConfirm}
                 disabled={!newName.trim()}
               >
-                <CheckCircle2 color="#fff" size={20} />
+                <CheckCircle2 color="#fff" size={iconSize.md} />
                 <Text style={s.confirmText}>Confirmar</Text>
               </TouchableOpacity>
             </View>
@@ -94,18 +94,18 @@ export default function RenameFishModal({ onClose }: { onClose: () => void }) {
 
 const s = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
-  modal: { width: '80%', maxWidth: 400, backgroundColor: '#1a1a2e', borderRadius: 20, padding: 20, borderWidth: 1, borderColor: '#FF69B4' },
-  closeBtn: { position: 'absolute', top: 15, right: 15, zIndex: 10 },
-  title: { color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: 5, textAlign: 'center' },
-  subtitle: { color: '#FF69B4', fontSize: 13, marginBottom: 20, textAlign: 'center' },
-  list: { flexGrow: 0, marginBottom: 20 },
-  fishCard: { width: 100, height: 120, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 15, alignItems: 'center', justifyContent: 'center', padding: 10, marginRight: 10, borderWidth: 2, borderColor: 'transparent' },
+  modal: { width: '85%', maxWidth: scale(380), backgroundColor: '#1a1a2e', borderRadius: radius.xl, padding: spacing.xl, borderWidth: 1, borderColor: '#FF69B4' },
+  closeBtn: { position: 'absolute', top: spacing.lg, right: spacing.lg, zIndex: 10 },
+  title: { color: '#fff', fontSize: fonts.xl, fontWeight: 'bold', marginBottom: spacing.xs, textAlign: 'center' },
+  subtitle: { color: '#FF69B4', fontSize: fonts.base, marginBottom: spacing.xl, textAlign: 'center' },
+  list: { flexGrow: 0, marginBottom: spacing.xl },
+  fishCard: { width: scale(95), height: scale(110), backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center', padding: spacing.sm, marginRight: spacing.sm, borderWidth: 2, borderColor: 'transparent' },
   fishCardSelected: { borderColor: '#FF69B4', backgroundColor: 'rgba(255,105,180,0.1)' },
-  fishName: { color: '#fff', fontSize: 12, marginTop: 10, fontWeight: 'bold', textTransform: 'capitalize' },
+  fishName: { color: '#fff', fontSize: fonts.sm, marginTop: spacing.sm, fontWeight: 'bold', textTransform: 'capitalize' },
   inputWrapper: { alignItems: 'center' },
-  label: { color: '#fff', fontSize: 14, alignSelf: 'flex-start', marginBottom: 8 },
-  input: { width: '100%', height: 45, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 10, color: '#fff', paddingHorizontal: 15, borderWidth: 1, borderColor: '#333', marginBottom: 15 },
-  confirmBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FF69B4', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 12, gap: 8 },
+  label: { color: '#fff', fontSize: fonts.base, alignSelf: 'flex-start', marginBottom: spacing.sm },
+  input: { width: '100%', height: scale(42), backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: radius.sm, color: '#fff', paddingHorizontal: spacing.lg, borderWidth: 1, borderColor: '#333', marginBottom: spacing.lg },
+  confirmBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FF69B4', paddingVertical: spacing.md, paddingHorizontal: spacing.xl, borderRadius: radius.md, gap: spacing.sm },
   confirmBtnDisabled: { opacity: 0.5 },
-  confirmText: { color: '#fff', fontWeight: 'bold', fontSize: 16 }
+  confirmText: { color: '#fff', fontWeight: 'bold', fontSize: fonts.lg }
 })

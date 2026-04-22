@@ -1,7 +1,9 @@
 import React, { useMemo } from 'react'
 import { View, Text, StyleSheet } from 'react-native'
+import { Drumstick, HeartPulse } from 'lucide-react-native'
 import ClownfishSVG from './fishes/Clownfish'
 import BlueTangSVG from './fishes/BlueTang'
+import { iconSize } from '../utils/responsive'
 
 // Memoize deeply to prevent expensive SVG re-renders 60x per second
 const MemoizedFishSVG = React.memo(({ species, size, isBaby }: any) => {
@@ -23,14 +25,14 @@ export default function Fish(props: any) {
        {/* Needs food? Show fork and knife icon floating above the fish! */}
        {hunger < 40 && (
          <View style={styles.hungerBubble}>
-           <Text style={styles.hungerIcon}>🍽️</Text>
+           <Drumstick color="#FF4444" size={iconSize.xs} strokeWidth={2.5} />
          </View>
        )}
 
        {/* Sick? Show icon */}
        {health < 50 && (
          <View style={[styles.hungerBubble, { top: -45, borderColor: 'green' }]}>
-           <Text style={styles.hungerIcon}>🤢</Text>
+           <HeartPulse color="#00CC00" size={iconSize.xs} strokeWidth={2.5} />
          </View>
        )}
 

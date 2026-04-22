@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient'
-import { Dna, Sparkles, X } from 'lucide-react-native'
+import { Dna, Fish, Lock, Sparkles, X } from 'lucide-react-native'
 import React, { useRef, useState } from 'react'
 import {
   Animated,
@@ -15,8 +15,7 @@ import { breed } from '../utils/breeding'
 import { FishCard, FishSlot, PulseHeart } from '../components/screens/BreedingComponents'
 import { useAlert } from '../components/ui/Alert'
 import { getSpeciesName } from '../data/species'
-
-// ─── Main ─────────────────────────────────────────────────────────────────────
+import { scale, sidePanel, fonts, spacing, radius, iconSize } from '../utils/responsive'
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
@@ -60,7 +59,7 @@ export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
       incrementStat('breed', 1)
       alert({
         type: 'success',
-        title: '💕 Nascimento!',
+        title: 'Nascimento!',
         message: `Um lindo ${getSpeciesName(data.species)} filhote chegou!`,
       })
       setSelected([])
@@ -70,13 +69,16 @@ export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
     setBreeding(false)
   }
 
+  // Use slightly wider sidePanel for breeding station
+  const breedingPanelWidth = Math.max(160, Math.min(scale(220), 300))
+
   return (
     <View style={s.containerRow}>
       {/* Left Sidebar */}
-      <View style={s.sidePanel}>
+      <View style={[s.sidePanel, { width: breedingPanelWidth }]}>
         <View style={s.headerLeft}>
           <View style={s.headerIcon}>
-            <Dna color="#FF69B4" size={18} strokeWidth={2} />
+            <Dna color="#FF69B4" size={iconSize.md} strokeWidth={2} />
           </View>
           <View>
             <Text style={s.title}>Criadouro</Text>
@@ -98,7 +100,7 @@ export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
 
             {/* Counter */}
             <Text style={s.counter}>
-              {selected.length} <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>/ 2</Text>
+              {selected.length} <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: fonts.base }}>/ 2</Text>
             </Text>
 
             {/* Breed Button */}
@@ -115,7 +117,7 @@ export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                 >
-                  <Sparkles color={canBreed ? '#fff' : 'rgba(255,255,255,0.3)'} size={16} strokeWidth={2} />
+                  <Sparkles color={canBreed ? '#fff' : 'rgba(255,255,255,0.3)'} size={iconSize.sm} strokeWidth={2} />
                   <Text style={[s.breedText, !canBreed && { color: 'rgba(255,255,255,0.3)' }]}>
                     {breeding ? 'Cruzando...' : 'Cruzar'}
                   </Text>
@@ -126,7 +128,10 @@ export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
             {/* Info pill */}
             {breedingLocked ? (
                <View style={[s.infoPill, { backgroundColor: 'rgba(255,100,100,0.12)', borderWidth: 1, borderColor: 'rgba(255,100,100,0.25)' }]}>
-                 <Text style={[s.infoText, { color: 'rgba(255,100,100,0.8)' }]}>🔒 Desbloqueie no Nível {LEVEL_UNLOCKS.breeding}</Text>
+                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+                   <Lock color="rgba(255,100,100,0.8)" size={iconSize.xs} strokeWidth={2.5} />
+                   <Text style={[s.infoText, { color: 'rgba(255,100,100,0.8)' }]}>Desbloqueie no Nível {LEVEL_UNLOCKS.breeding}</Text>
+                 </View>
                </View>
             ) : !canBreed && (
                <View style={s.infoPill}>
@@ -141,9 +146,8 @@ export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
       <View style={s.mainPanel}>
         {/* Absolute Close Button */}
         <TouchableOpacity style={s.closeBtnAbs} onPress={onClose}>
-          <X color="rgba(255,255,255,0.6)" size={16} strokeWidth={2.5} />
+          <X color="rgba(255,255,255,0.6)" size={iconSize.sm} strokeWidth={2.5} />
         </TouchableOpacity>
-
 
         <ScrollView contentContainerStyle={s.body} showsVerticalScrollIndicator={false}>
 
@@ -153,7 +157,7 @@ export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
           <View style={s.grid}>
             {adults.length === 0 ? (
               <View style={s.empty}>
-                <Text style={s.emptyEmoji}>🐟</Text>
+                <Fish color="rgba(41,182,246,0.4)" size={iconSize.xxl} strokeWidth={1.5} />
                 <Text style={s.emptyText}>Nenhum adulto{'\n'}no aquário</Text>
               </View>
             ) : (
@@ -179,103 +183,88 @@ export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
 
 const s = StyleSheet.create({
   containerRow: { flex: 1, flexDirection: 'row', position: 'relative' },
-  sidePanel: { width: 270, backgroundColor: 'rgba(0,0,0,0.15)', borderRightWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  sidePanel: { backgroundColor: 'rgba(0,0,0,0.15)', borderRightWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
   mainPanel: { flex: 1 },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md },
   headerIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
+    width: scale(30),
+    height: scale(30),
+    borderRadius: radius.sm,
     backgroundColor: 'rgba(255,105,180,0.15)',
     borderWidth: 1,
     borderColor: 'rgba(255,105,180,0.3)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { fontSize: 13, fontWeight: '900', color: '#fff', letterSpacing: 0.3 },
-  subtitle: { fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: '700', letterSpacing: 0.8, marginTop: 1 },
-  headerRight: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10, padding: 14, paddingBottom: 0 },
+  title: { fontSize: fonts.base, fontWeight: '900', color: '#fff', letterSpacing: 0.3 },
+  subtitle: { fontSize: fonts.xxs, color: 'rgba(255,255,255,0.4)', fontWeight: '700', letterSpacing: 0.8, marginTop: 1 },
   closeBtnAbs: {
     position: 'absolute',
-    top: 14,
-    right: 14,
-    width: 28,
-    height: 28,
-    borderRadius: 15,
+    top: spacing.md,
+    right: spacing.md,
+    width: scale(28),
+    height: scale(28),
+    borderRadius: scale(14),
     backgroundColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 99,
   },
-  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginHorizontal: 14 },
+  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginHorizontal: spacing.md },
 
-  stationWrap: { flex: 1, padding: 14 },
-  body: { padding: 14, paddingTop: 40, gap: 12, paddingBottom: 40 },
+  stationWrap: { flex: 1, padding: spacing.md },
+  body: { padding: spacing.md, paddingTop: spacing.xxxl, gap: spacing.md, paddingBottom: spacing.xxxl },
 
   // Station (left)
   station: {
     flex: 1,
     backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: 18,
+    borderRadius: radius.xl,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
-    padding: 14,
+    padding: spacing.md,
     alignItems: 'center',
-    gap: 14,
+    gap: spacing.md,
     justifyContent: 'center',
   },
-  slotRow: { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center' },
-  counter: { fontSize: 22, fontWeight: '900', color: '#FF69B4' },
-  breedBtn: { width: '100%', borderRadius: 14, overflow: 'hidden' },
+  slotRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, justifyContent: 'center' },
+  counter: { fontSize: fonts.xxl, fontWeight: '900', color: '#FF69B4' },
+  breedBtn: { width: '100%', borderRadius: radius.md, overflow: 'hidden' },
   breedBtnDisabled: { opacity: 0.5 },
   breedGrad: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 13,
-    gap: 7,
+    paddingVertical: spacing.md,
+    gap: spacing.xs,
   },
-  breedText: { color: '#fff', fontWeight: '900', fontSize: 13, letterSpacing: 0.8 },
+  breedText: { color: '#fff', fontWeight: '900', fontSize: fonts.base, letterSpacing: 0.8 },
   infoPill: {
     backgroundColor: 'rgba(255,255,255,0.06)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.sm,
   },
-  infoText: { fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: '600' },
+  infoText: { fontSize: fonts.sm, color: 'rgba(255,255,255,0.35)', fontWeight: '600' },
 
   // Grid (right)
-  gridWrap: { flex: 1, gap: 8 },
+  gridWrap: { flex: 1, gap: spacing.sm },
   gridTitle: {
-    fontSize: 10,
+    fontSize: fonts.sm,
     fontWeight: '800',
     color: 'rgba(255,255,255,0.4)',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
-    marginBottom: 2,
+    marginBottom: spacing.xxs,
   },
-  grid: { paddingBottom: 16 },
-  gridInner: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, justifyContent: 'center' },
-  empty: { flex: 1, alignItems: 'center', paddingTop: 30, gap: 8 },
-  emptyEmoji: { fontSize: 36 },
+  grid: { paddingBottom: spacing.lg },
+  gridInner: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, justifyContent: 'center' },
+  empty: { flex: 1, alignItems: 'center', paddingTop: spacing.xxl, gap: spacing.sm },
   emptyText: {
     color: 'rgba(255,255,255,0.3)',
-    fontSize: 12,
+    fontSize: fonts.sm,
     fontWeight: '700',
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: fonts.xl,
   },
 })
-
-
-
-
-
-
-
-
-
-
-
-
-
