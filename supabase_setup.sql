@@ -29,7 +29,15 @@ CREATE TABLE IF NOT EXISTS public.xp (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );
 
--- 5. Create fishes table (1-to-many with profiles)
+-- 5. Create foods table (1-to-1 with profiles) -- BUG #14 FIX: Was missing
+CREATE TABLE IF NOT EXISTS public.foods (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    profile_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE UNIQUE NOT NULL,
+    amount INTEGER DEFAULT 50 NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
+);
+
+-- 6. Create fishes table (1-to-many with profiles)
 CREATE TABLE IF NOT EXISTS public.fishes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     profile_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
@@ -47,10 +55,12 @@ CREATE TABLE IF NOT EXISTS public.fishes (
     direction REAL NOT NULL,
     stage TEXT,
     health REAL,
+    dna TEXT,
+    nickname TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );
 
--- 6. Create dead_fishes table (1-to-many with profiles)
+-- 7. Create dead_fishes table (1-to-many with profiles)
 CREATE TABLE IF NOT EXISTS public.dead_fishes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     profile_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
@@ -69,16 +79,31 @@ CREATE TABLE IF NOT EXISTS public.dead_fishes (
     stage TEXT,
     health REAL,
     death_time BIGINT,
+    dna TEXT,
+    nickname TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );
 
--- Enable RLS logic for new tables
+-- 8. Create user_stats table (1-to-1 with profiles) -- BUG #14 FIX: Was missing
+CREATE TABLE IF NOT EXISTS public.user_stats (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    profile_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE UNIQUE NOT NULL,
+    stats JSONB DEFAULT '{"feed":0,"breed":0,"buy_fish":0,"collect_coin":0,"buy_food":0,"revive":0,"nickname_items":0}'::jsonb NOT NULL,
+    claimed_missions JSONB DEFAULT '[]'::jsonb NOT NULL,
+    daily_progress JSONB DEFAULT '{}'::jsonb NOT NULL,
+    last_daily_reset BIGINT DEFAULT 0 NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
+);
+
+-- Enable RLS logic for all tables
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.coins ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.level ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.xp ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.foods ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.fishes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.dead_fishes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_stats ENABLE ROW LEVEL SECURITY;
 
 -- Create Policies (Only users can access and modify their own data)
 DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
@@ -109,17 +134,23 @@ CREATE POLICY "Users can update own xp" ON public.xp FOR UPDATE USING (auth.uid(
 DROP POLICY IF EXISTS "Users can insert own xp" ON public.xp;
 CREATE POLICY "Users can insert own xp" ON public.xp FOR INSERT WITH CHECK (auth.uid() = profile_id);
 
+DROP POLICY IF EXISTS "Users can manage own foods" ON public.foods;
+CREATE POLICY "Users can manage own foods" ON public.foods FOR ALL USING (auth.uid() = profile_id);
+
 DROP POLICY IF EXISTS "Users can view own fishes" ON public.fishes;
 CREATE POLICY "Users can view own fishes" ON public.fishes FOR SELECT USING (auth.uid() = profile_id);
-DROP POLICY IF EXISTS "Users can update own fishes" ON public.fishes;
-CREATE POLICY "Users can update own fishes" ON public.fishes FOR ALL USING (auth.uid() = profile_id);
+DROP POLICY IF EXISTS "Users can manage own fishes" ON public.fishes;
+CREATE POLICY "Users can manage own fishes" ON public.fishes FOR ALL USING (auth.uid() = profile_id);
 
 DROP POLICY IF EXISTS "Users can view own dead fishes" ON public.dead_fishes;
 CREATE POLICY "Users can view own dead fishes" ON public.dead_fishes FOR SELECT USING (auth.uid() = profile_id);
-DROP POLICY IF EXISTS "Users can update own dead fishes" ON public.dead_fishes;
-CREATE POLICY "Users can update own dead fishes" ON public.dead_fishes FOR ALL USING (auth.uid() = profile_id);
+DROP POLICY IF EXISTS "Users can manage own dead fishes" ON public.dead_fishes;
+CREATE POLICY "Users can manage own dead fishes" ON public.dead_fishes FOR ALL USING (auth.uid() = profile_id);
 
--- 7. Trigger to automatically create related records on new user creation
+DROP POLICY IF EXISTS "Users can manage own stats" ON public.user_stats;
+CREATE POLICY "Users can manage own stats" ON public.user_stats FOR ALL USING (auth.uid() = profile_id);
+
+-- 9. Trigger to automatically create related records on new user creation
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -138,18 +169,25 @@ BEGIN
   -- Insert into xp (starting xp 0)
   INSERT INTO public.xp (profile_id, amount) VALUES (new.id, 0);
   
-  -- Insert a starting fish 1 (Guppy) sem passar ID
+  -- Insert into foods (starting with 50)
+  INSERT INTO public.foods (profile_id, amount) VALUES (new.id, 50);
+  
+  -- Insert into user_stats (default values)
+  INSERT INTO public.user_stats (profile_id) VALUES (new.id);
+
+  -- BUG #2 FIX: Use correct lowercase species/rarity matching front-end
+  -- Insert a starting fish 1 (Clownfish)
   INSERT INTO public.fishes (
     profile_id, type, species, rarity, color, size, speed, hunger, happiness, age, position_x, position_y, direction, stage, health
   ) VALUES (
-    new.id, 'fish', 'Guppy', 'Comum', 'Laranja', 20.0, 2.0, 100.0, 100.0, 0.0, 100.0, 100.0, 1.0, 'adult', 100.0
+    new.id, 'fish', 'clownfish', 'common', '#FF4500', 25.0, 0.7, 100.0, 100.0, 0.0, 100.0, 200.0, 1.0, 'adult', 100.0
   );
 
-  -- Insert a starting fish 2 (Clownfish) sem passar ID
+  -- Insert a starting fish 2 (Blue Tang)
   INSERT INTO public.fishes (
     profile_id, type, species, rarity, color, size, speed, hunger, happiness, age, position_x, position_y, direction, stage, health
   ) VALUES (
-    new.id, 'fish', 'Clownfish', 'Comum', 'Laranja e Branco', 25.0, 2.5, 100.0, 100.0, 0.0, 150.0, 150.0, -1.0, 'adult', 100.0
+    new.id, 'fish', 'bluetang', 'common', '#0000FF', 25.0, 0.8, 100.0, 100.0, 0.0, 200.0, 200.0, -1.0, 'adult', 100.0
   );
 
   RETURN new;

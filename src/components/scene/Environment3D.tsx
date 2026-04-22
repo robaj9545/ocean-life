@@ -232,6 +232,14 @@ const CartoonRocks = ({ position, map }: any) => {
 // Treasure Chest using rounded geometries for cartoon feel
 const StylizedChest = ({ position, map }: any) => {
   const lidRef = useRef<THREE.Group>(null);
+  // BUG #8 FIX: Memoize pearl positions to prevent random repositioning on re-render
+  const pearlPositions = useMemo(() =>
+    [...Array(12)].map(() => [
+      Math.random() * 1.8 - 0.9,
+      Math.random() * 0.5 + 0.1,
+      Math.random() * 1 - 0.2
+    ] as [number, number, number]),
+  []);
   useFrame((state) => {
     if (lidRef.current) {
         // Slow enchanting opening
@@ -261,10 +269,10 @@ const StylizedChest = ({ position, map }: any) => {
             <EnvMaterial color="#FFD700" roughness={0.2} metalness={0.8} />
          </mesh>
          
-         {/* Individual Pearls scattered */}
-         {[...Array(12)].map((_, i) => (
-            <mesh key={i} position={[Math.random()*1.8-0.9, Math.random()*0.5+0.1, Math.random()*1-0.2]}>
-               <sphereGeometry args={[0.15, 16, 16]} />
+         {/* Individual Pearls scattered — memoized positions */}
+         {pearlPositions.map((pos, i) => (
+            <mesh key={i} position={pos}>
+               <sphereGeometry args={[0.15, 12, 12]} />
                <EnvMaterial color="#FFFFFF" roughness={0.1} />
                <Stroke thickness={0.02} />
             </mesh>
@@ -351,6 +359,9 @@ const StylizedJellyfish = ({ position, map }: any) => {
 const StylizedCrab = ({ position, map }: any) => {
   const ref = useRef<THREE.Group>(null);
   const legsRef = useRef<THREE.Group>(null);
+  // BUG #11 FIX: Use dedicated refs instead of fragile children[] indices
+  const leftClawRef = useRef<THREE.Group>(null);
+  const rightClawRef = useRef<THREE.Group>(null);
   
   useFrame((state) => {
     if(ref.current) {
@@ -364,11 +375,9 @@ const StylizedCrab = ({ position, map }: any) => {
        // Bobbing
        ref.current.position.y = groundY + Math.abs(Math.sin(state.clock.elapsedTime * 4)) * 0.05;
        
-       // Arm waving
-       const leftClaw = ref.current.children[3];
-       const rightClaw = ref.current.children[4];
-       leftClaw.rotation.z = Math.sin(state.clock.elapsedTime * 2) * 0.2;
-       rightClaw.rotation.z = -Math.sin(state.clock.elapsedTime * 2.2) * 0.2;
+       // Arm waving — using dedicated refs
+       if (leftClawRef.current) leftClawRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 2) * 0.2;
+       if (rightClawRef.current) rightClawRef.current.rotation.z = -Math.sin(state.clock.elapsedTime * 2.2) * 0.2;
     }
     if(legsRef.current) {
        // Scurrying legs
@@ -398,10 +407,10 @@ const StylizedCrab = ({ position, map }: any) => {
           <mesh position={[0, 0.2, 0.05]}><sphereGeometry args={[0.1, 16, 16]} /><EnvMaterial color="#ffffff" roughness={0.2} /><mesh position={[0,0,0.08]}><sphereGeometry args={[0.04]} /><meshBasicMaterial color="#000" /></mesh></mesh>
        </mesh>
        {/* Claws */}
-       <group position={[-0.6, 0.4, 0.4]} rotation={[0, 0.5, 0.4]}>
+       <group ref={leftClawRef} position={[-0.6, 0.4, 0.4]} rotation={[0, 0.5, 0.4]}>
           <TaperedTube radiusTop={0.15} radiusBottom={0.05} length={0.6} color="#DC143C" map={map} />
        </group>
-       <group position={[0.6, 0.4, 0.4]} rotation={[0, -0.5, -0.4]}>
+       <group ref={rightClawRef} position={[0.6, 0.4, 0.4]} rotation={[0, -0.5, -0.4]}>
           <TaperedTube radiusTop={0.2} radiusBottom={0.05} length={0.8} color="#B22222" map={map} />
        </group>
        {/* Legs */}
@@ -419,6 +428,53 @@ const StylizedCrab = ({ position, map }: any) => {
            )
          })}
        </group>
+    </group>
+  );
+};
+
+// Animated Aquatic Plants (Kelp/Seaweed)
+const SeaweedCluster = ({ position, color = '#1B5E20', count = 5, maxHeight = 3.0 }: any) => {
+  const groupRef = useRef<THREE.Group>(null);
+  const blades = useMemo(() => {
+    return [...Array(count)].map((_, i) => {
+      const h = 1.5 + Math.random() * (maxHeight - 1.5);
+      const xOff = (Math.random() - 0.5) * 0.8;
+      const zOff = (Math.random() - 0.5) * 0.6;
+      const phase = Math.random() * Math.PI * 2;
+      const geo = new THREE.CylinderGeometry(0.06, 0.12, h, 8, 12);
+      geo.translate(0, h / 2, 0);
+      const pos = geo.attributes.position;
+      for (let j = 0; j < pos.count; j++) {
+        const y = pos.getY(j);
+        const progress = y / h;
+        // Organic S-curve
+        const bendX = Math.sin(progress * Math.PI * 1.5) * 0.3 * progress;
+        pos.setX(j, pos.getX(j) + bendX);
+      }
+      geo.computeVertexNormals();
+      return { geo, xOff, zOff, phase, h };
+    });
+  }, [count, maxHeight]);
+
+  useFrame((state) => {
+    if (!groupRef.current) return;
+    const t = state.clock.elapsedTime;
+    groupRef.current.children.forEach((child: any, i: number) => {
+      if (blades[i]) {
+        child.rotation.z = Math.sin(t * 1.2 + blades[i].phase) * 0.15;
+        child.rotation.x = Math.cos(t * 0.8 + blades[i].phase) * 0.05;
+      }
+    });
+  });
+
+  return (
+    <group ref={groupRef} position={position}>
+      {blades.map((blade, i) => (
+        <mesh key={i} geometry={blade.geo} position={[blade.xOff, 0, blade.zOff]}>
+          <EnvMaterial color={i % 2 === 0 ? color : '#4CAF50'} roughness={0.7} />
+          <Stroke thickness={0.03} color="#0D3B0D" />
+        </mesh>
+      ))}
     </group>
   );
 };
@@ -610,6 +666,13 @@ export default function Environment3D() {
         <StylizedShell position={[-1.5, getSandHeight(-1.5, 2.0) + 0.1, 2.0]} rotation={[-0.1, 0.2, 0.1]} scale={[0.4, 0.4, 0.4]} map={texShell} />
         <StylizedShell position={[2.5, getSandHeight(2.5, 1.5) + 0.1, 1.5]} rotation={[0, -1.0, 0]} scale={[0.5, 0.5, 0.5]} map={texShell} />
         <StylizedShell position={[-5.0, getSandHeight(-5.0, 1.0) + 0.05, 1.0]} rotation={[0.2, 2.0, 0]} scale={[0.3, 0.3, 0.3]} map={texShell} />
+
+        {/* Aquatic Plants — Kelp and Seaweed clusters */}
+        <SeaweedCluster position={[-6.5, getSandHeight(-6.5, -0.5), -0.5]} color="#1B5E20" count={4} maxHeight={2.5} />
+        <SeaweedCluster position={[8.0, getSandHeight(8.0, -1.5), -1.5]} color="#2E7D32" count={6} maxHeight={3.5} />
+        <SeaweedCluster position={[-3.0, getSandHeight(-3.0, 1.5), 1.5]} color="#388E3C" count={3} maxHeight={2.0} />
+        <SeaweedCluster position={[1.5, getSandHeight(1.5, -3.0), -3.0]} color="#1B5E20" count={5} maxHeight={3.0} />
+        <SeaweedCluster position={[6.0, getSandHeight(6.0, 0.5), 0.5]} color="#4CAF50" count={3} maxHeight={2.0} />
       </group>
 
     </group>

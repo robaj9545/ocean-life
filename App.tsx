@@ -15,6 +15,7 @@ import { AlertProvider } from './src/components/ui/Alert'
 export default function App() {
   const [session, setSession] = useState<any>(null)
   const [isReady, setIsReady] = useState(false)
+  const [offlineSummary, setOfflineSummary] = useState<{ coins: number; deaths: number; grown: number } | null>(null)
 
   // Ignore multiple instances of Three.js warning usually caused by generic Expo setup
   useEffect(() => {
@@ -37,13 +38,35 @@ export default function App() {
           const lastSavedStr = await AsyncStorage.getItem('@last_saved_time');
           const localLastSaved = lastSavedStr ? parseInt(lastSavedStr) : Date.now();
           
+          const loadedFishes = fishesObj.data || [];
+          
+          // BUG #5 FIX: Full offline progress calculation including hunger, death, growth
+          const offlineResult = calculateOfflineProgress(localLastSaved, loadedFishes);
+          
+          // Apply offline updates to fishes
+          const survivingFishes = offlineResult.updatedFishes.filter(
+            f => !offlineResult.deaths.includes(f.id)
+          );
+          
+          // Build dead fish list from offline deaths
+          const newDeadFishes = offlineResult.updatedFishes
+            .filter(f => offlineResult.deaths.includes(f.id))
+            .map(f => ({ ...f, deathTime: Date.now() }));
+
+          const allDeadFishes = [...(deadFishesObj.data || []), ...newDeadFishes];
+
+          // Count fish that grew to adult during offline
+          const grownCount = loadedFishes.filter(
+            (f, i) => f.stage === 'baby' && offlineResult.updatedFishes[i]?.stage === 'adult'
+          ).length;
+
           useGameStore.setState({ 
-            coins: economy.data.coins !== null ? economy.data.coins : 500, 
+            coins: (economy.data.coins !== null ? economy.data.coins : 500) + Math.floor(offlineResult.coins), 
             foodAmount: economy.data.foodAmount !== null ? economy.data.foodAmount : 50,
             level: economy.data.level || 1,
             xp: economy.data.xp || 0,
-            fishes: fishesObj.data || [],
-            deadFishes: deadFishesObj.data || [],
+            fishes: survivingFishes,
+            deadFishes: allDeadFishes,
             lastSaved: localLastSaved
           });
           
@@ -59,10 +82,20 @@ export default function App() {
           // Remove dead fishes older than 30 days
           useGameStore.getState().cleanupDeadFishes();
           
-          const { coins: offlineCoins } = calculateOfflineProgress(localLastSaved);
-          if (offlineCoins > 0) {
-            useGameStore.getState().addCoins(Math.floor(offlineCoins));
+          // Show offline summary if player was away for > 5 minutes
+          const offlineMinutes = (Date.now() - localLastSaved) / (1000 * 60);
+          if (offlineMinutes > 5 && (offlineResult.coins > 1 || offlineResult.deaths.length > 0 || grownCount > 0)) {
+            setOfflineSummary({
+              coins: Math.floor(offlineResult.coins),
+              deaths: offlineResult.deaths.length,
+              grown: grownCount,
+            });
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => setOfflineSummary(null), 5000);
           }
+
+          // Save the new state after applying offline progress
+          useGameStore.getState().pushToCloud();
         }
       }
       setIsReady(true);
@@ -90,7 +123,44 @@ export default function App() {
     <AlertProvider>
       <View style={{ flex: 1, backgroundColor: '#002244' }}>
         {session && session.user ? (
-          <AquariumScreen />
+          <>
+            <AquariumScreen />
+            {/* Offline summary banner */}
+            {offlineSummary && (
+              <View style={{
+                position: 'absolute',
+                top: 80,
+                left: 20,
+                right: 20,
+                backgroundColor: 'rgba(0,30,60,0.95)',
+                borderRadius: 16,
+                padding: 16,
+                borderWidth: 1,
+                borderColor: 'rgba(0,229,255,0.3)',
+                zIndex: 999,
+                gap: 6,
+              }}>
+                <Text style={{ color: '#00E5FF', fontWeight: '900', fontSize: 14 }}>
+                  🌊 Enquanto você esteve fora...
+                </Text>
+                {offlineSummary.coins > 0 && (
+                  <Text style={{ color: '#FFD700', fontWeight: '700', fontSize: 12 }}>
+                    💰 +{offlineSummary.coins.toLocaleString()} moedas coletadas
+                  </Text>
+                )}
+                {offlineSummary.grown > 0 && (
+                  <Text style={{ color: '#00E5A0', fontWeight: '700', fontSize: 12 }}>
+                    🐟 {offlineSummary.grown} peixe(s) cresceram para adulto!
+                  </Text>
+                )}
+                {offlineSummary.deaths > 0 && (
+                  <Text style={{ color: '#FF6B6B', fontWeight: '700', fontSize: 12 }}>
+                    💀 {offlineSummary.deaths} peixe(s) morreram de fome...
+                  </Text>
+                )}
+              </View>
+            )}
+          </>
         ) : (
           <LoginScreen />
         )}

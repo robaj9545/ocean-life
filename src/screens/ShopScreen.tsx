@@ -13,13 +13,14 @@ import BlueTangSVG from '../components/fishes/BlueTang'
 import ClownfishSVG from '../components/fishes/Clownfish'
 import { createFish } from '../entities/createFish'
 import { fishService } from '../services/fishService'
-import { useGameStore } from '../store/useGameStore'
+import { useGameStore, LEVEL_UNLOCKS } from '../store/useGameStore'
 
 import { ShopCard } from '../components/ui/Cards'
 import { TabBar } from '../components/ui/Buttons'
 import { BalancePill } from '../components/ui/Stats'
 import { useAlert } from '../components/ui/Alert'
 import RenameFishModal from '../components/screens/RenameFishModal'
+import { getSpeciesName, getReviveCost } from '../data/species'
 
 type Tab = 'shop' | 'food' | 'cemetery' | 'decorations'
 
@@ -27,6 +28,7 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
   const [activeTab, setActiveTab] = useState<Tab>('shop')
   const [showRenameModal, setShowRenameModal] = useState(false)
   const coins = useGameStore(state => state.coins)
+  const level = useGameStore(state => state.level)
   const deadFishes = useGameStore(state => state.deadFishes)
   const addCoins = useGameStore(state => state.addCoins)
   const addFish = useGameStore(state => state.addFish)
@@ -84,7 +86,7 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
   }
 
   const handleRevive = (ghost: any) => {
-    const cost = ghost.species === 'clownfish' ? 25 : 75
+    const cost = getReviveCost(ghost.species)
     if (coins >= cost) {
       reviveFish(ghost.id, cost)
       alert({ type: 'success', title: '✨ Milagre!', message: 'Peixe ressuscitado com sucesso!' })
@@ -167,6 +169,8 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                 preview={<Text style={{fontSize: 50}}>🕷️</Text>}
                 onBuy={() => buyFish(500, 'spiderfish', 'rare')}
                 disabled={coins < 500}
+                locked={level < LEVEL_UNLOCKS.spiderfish}
+                lockedLevel={LEVEL_UNLOCKS.spiderfish}
               />
               <ShopCard
                 index={3}
@@ -179,6 +183,8 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                 preview={<Text style={{fontSize: 50}}>🦁</Text>}
                 onBuy={() => buyFish(750, 'lionfish', 'rare')}
                 disabled={coins < 750}
+                locked={level < LEVEL_UNLOCKS.lionfish}
+                lockedLevel={LEVEL_UNLOCKS.lionfish}
               />
               <ShopCard
                 index={4}
@@ -191,6 +197,8 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                 preview={<Text style={{fontSize: 50}}>🐉</Text>}
                 onBuy={() => buyFish(2000, 'dragonfish', 'epic')}
                 disabled={coins < 2000}
+                locked={level < LEVEL_UNLOCKS.dragonfish}
+                lockedLevel={LEVEL_UNLOCKS.dragonfish}
               />
               <ShopCard
                 index={5}
@@ -203,6 +211,8 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                 preview={<Text style={{fontSize: 50}}>👻</Text>}
                 onBuy={() => buyFish(2500, 'ghostshark', 'epic')}
                 disabled={coins < 2500}
+                locked={level < LEVEL_UNLOCKS.ghostshark}
+                lockedLevel={LEVEL_UNLOCKS.ghostshark}
               />
               <ShopCard
                 index={6}
@@ -215,6 +225,8 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                 preview={<Text style={{fontSize: 50}}>🦑</Text>}
                 onBuy={() => buyFish(10000, 'leviathan', 'legendary')}
                 disabled={coins < 10000}
+                locked={level < LEVEL_UNLOCKS.leviathan}
+                lockedLevel={LEVEL_UNLOCKS.leviathan}
               />
             </>
           )}
@@ -268,8 +280,8 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                 <Text style={s.emptyDesc}>Nenhum peixe morreu de fome... ainda.</Text>
               </View>
             ) : (
-              deadFishes.map((ghost, i) => {
-                const reviveCost = ghost.species === 'clownfish' ? 25 : 75
+            deadFishes.map((ghost, i) => {
+                const reviveCost = getReviveCost(ghost.species)
                 const daysLeft = ghost.deathTime
                   ? Math.max(0, Math.ceil((30 * 24 * 60 * 60 * 1000 - (Date.now() - ghost.deathTime)) / (1000 * 60 * 60 * 24)))
                   : 30
@@ -278,7 +290,7 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                   <ShopCard
                     key={`${ghost.id}-${i}`}
                     index={i}
-                    title={ghost.species === 'clownfish' ? 'Peixe-Palhaço' : 'Cirurgião-Patela'}
+                    title={getSpeciesName(ghost.species)}
                     description="Pode ser ressuscitado com uma dose de magia."
                     rarity="MORTO"
                     rarityColor="#A855F7"

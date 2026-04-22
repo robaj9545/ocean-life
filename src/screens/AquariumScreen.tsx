@@ -22,7 +22,7 @@ import ShopScreen from './ShopScreen'
 
 // Modulos UI Importados
 import { NavButton } from '../components/ui/Buttons'
-import { FishPanel, HungryBubble } from '../components/ui/Overlays'
+import { FishPanel, HungryBubble, CoinBubble } from '../components/ui/Overlays'
 import { CurrencyChip, LevelBadge } from '../components/ui/Stats'
 
 const { width, height } = Dimensions.get('window')
@@ -45,20 +45,27 @@ export default function AquariumScreen() {
   const pendingAchv = ACHIEVEMENTS.filter(m => !claimedMissions.includes(m.id) && (stats[m.action as keyof typeof stats] || 0) >= m.targetAmount).length
   const totalPending = pendingDailies + pendingAchv
 
-  // Hungry tracking
+  // Hungry + Coin tracking
   const hungryRefs = useRef<any>({})
   const [hungrySpots, setHungrySpots] = useState<any[]>([])
+  const [coinSpots, setCoinSpots] = useState<any[]>([])
 
   useEffect(() => {
     const iv = setInterval(() => {
-      const spots: any[] = []
+      const hSpots: any[] = []
+      const cSpots: any[] = []
       for (const key in hungryRefs.current) {
-        if (hungryRefs.current[key]?.isHungry) {
-          spots.push({ id: key, ...hungryRefs.current[key] })
+        const ref = hungryRefs.current[key]
+        if (ref?.isHungry) {
+          hSpots.push({ id: key, ...ref })
+        }
+        if (ref?.hasCoin) {
+          cSpots.push({ id: key, ...ref })
         }
       }
-      setHungrySpots(spots)
-    }, 16)
+      setHungrySpots(hSpots)
+      setCoinSpots(cSpots)
+    }, 500) // PERF FIX: 500ms instead of 16ms
     return () => clearInterval(iv)
   }, [])
 
@@ -68,7 +75,8 @@ export default function AquariumScreen() {
 
   const handleSellFish = () => {
     if (!selectedFish) return
-    const sellPrice = selectedFish.species === 'clownfish' ? 100 : 250
+    // GAMEPLAY FIX: Dynamic sell price based on rarity/stage/DNA
+    const sellPrice = useGameStore.getState().getSellPrice(selectedFish)
     addCoins(sellPrice)
     useGameStore.getState().removeFish(selectedFish.id)
     setSelectedFish(null)
@@ -116,6 +124,21 @@ export default function AquariumScreen() {
                 ),
               )
               hungryRefs.current[spot.id].isHungry = false
+            }
+          }}
+        />
+      ))}
+
+      {/* Coin overlays — positioned above hungry if both present */}
+      {coinSpots.map(spot => (
+        <CoinBubble
+          key={`coin_${spot.id}`}
+          spot={spot}
+          hasHungry={spot.isHungry}
+          onCollect={() => {
+            useGameStore.getState().collectCoinFromFish(spot.id)
+            if (hungryRefs.current[spot.id]) {
+              hungryRefs.current[spot.id].hasCoin = false
             }
           }}
         />
@@ -177,6 +200,7 @@ export default function AquariumScreen() {
       {selectedFish && (
         <FishPanel
           fish={selectedFish}
+          sellPrice={useGameStore.getState().getSellPrice(selectedFish)}
           onClose={() => setSelectedFish(null)}
           onSell={handleSellFish}
         />

@@ -10,10 +10,11 @@ import {
   View,
 } from 'react-native'
 import { fishService } from '../services/fishService'
-import { FishEntity, useGameStore } from '../store/useGameStore'
+import { FishEntity, useGameStore, LEVEL_UNLOCKS } from '../store/useGameStore'
 import { breed } from '../utils/breeding'
 import { FishCard, FishSlot, PulseHeart } from '../components/screens/BreedingComponents'
 import { useAlert } from '../components/ui/Alert'
+import { getSpeciesName } from '../data/species'
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
@@ -26,11 +27,14 @@ export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
   const [breeding, setBreeding] = useState(false)
   const breedAnim = useRef(new Animated.Value(1)).current
   const { alert } = useAlert()
+  const level = useGameStore(state => state.level)
+  const breedingLocked = level < LEVEL_UNLOCKS.breeding
 
   const adults = fishes.filter(f => f.stage === 'adult')
-  const canBreed = selected.length === 2
+  const canBreed = selected.length === 2 && !breedingLocked
 
   const toggleSelect = (fish: FishEntity) => {
+    if (breedingLocked) return
     const already = selected.find(f => f.id === fish.id)
     if (already) {
       setSelected(selected.filter(f => f.id !== fish.id))
@@ -57,7 +61,7 @@ export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
       alert({
         type: 'success',
         title: '💕 Nascimento!',
-        message: `Um lindo ${data.species === 'clownfish' ? 'Peixe-Palhaço' : 'Cirurgião-Patela'} filhote chegou!`,
+        message: `Um lindo ${getSpeciesName(data.species)} filhote chegou!`,
       })
       setSelected([])
     } else {
@@ -120,7 +124,11 @@ export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
             </Animated.View>
 
             {/* Info pill */}
-            {!canBreed && (
+            {breedingLocked ? (
+               <View style={[s.infoPill, { backgroundColor: 'rgba(255,100,100,0.12)', borderWidth: 1, borderColor: 'rgba(255,100,100,0.25)' }]}>
+                 <Text style={[s.infoText, { color: 'rgba(255,100,100,0.8)' }]}>🔒 Desbloqueie no Nível {LEVEL_UNLOCKS.breeding}</Text>
+               </View>
+            ) : !canBreed && (
                <View style={s.infoPill}>
                  <Text style={s.infoText}>Selecione 2 adultos</Text>
                </View>

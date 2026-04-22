@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
-import { Coins, ArrowUpCircle } from 'lucide-react-native'
+import { Coins, ArrowUpCircle, Lock } from 'lucide-react-native'
 
 export function ShopCard({
   title,
@@ -24,6 +24,8 @@ export function ShopCard({
   dead,
   daysLeft,
   onRevive,
+  locked,
+  lockedLevel,
 }: {
   title: string
   description: string
@@ -38,6 +40,8 @@ export function ShopCard({
   dead?: boolean
   daysLeft?: number
   onRevive?: () => void
+  locked?: boolean
+  lockedLevel?: number
 }) {
   const enter = useRef(new Animated.Value(0)).current
   const pressAnim = useRef(new Animated.Value(1)).current
@@ -67,17 +71,25 @@ export function ShopCard({
           ],
         },
         dead && sc.deadWrap,
+        locked && sc.lockedWrap,
       ]}
     >
-      <View style={[sc.glowTop, { backgroundColor: accentColor }]} />
+      <View style={[sc.glowTop, { backgroundColor: locked ? '#555' : accentColor }]} />
       <View style={[sc.rarityBadge, { backgroundColor: `${rarityColor}33`, borderColor: `${rarityColor}66` }]}>
         <Text style={[sc.rarityText, { color: rarityColor }]}>{rarity}</Text>
       </View>
 
-      <View style={[sc.preview, dead && { opacity: 0.4 }]}>
+      <View style={[sc.preview, dead && { opacity: 0.4 }, locked && { opacity: 0.3 }]}>
         <LinearGradient colors={[`${accentColor}22`, 'transparent']} style={StyleSheet.absoluteFillObject} />
         {preview}
       </View>
+
+      {locked && (
+        <View style={sc.lockedOverlay}>
+          <Lock color="rgba(255,255,255,0.8)" size={22} strokeWidth={2.5} />
+          <Text style={sc.lockedText}>Nível {lockedLevel}</Text>
+        </View>
+      )}
 
       <View style={sc.body}>
         <Text style={[sc.title, dead && { textDecorationLine: 'line-through', opacity: 0.6 }]}>{title}</Text>
@@ -85,13 +97,21 @@ export function ShopCard({
 
         {dead && daysLeft !== undefined && <Text style={sc.daysLeft}>⏳ Expira em {daysLeft}d</Text>}
 
-        {onBuy && (
+        {onBuy && !locked && (
           <TouchableOpacity style={[sc.btn, disabled && sc.btnDisabled]} onPress={onBuy} onPressIn={onPressIn} onPressOut={onPressOut} disabled={disabled} activeOpacity={0.85}>
             <LinearGradient colors={disabled ? ['#333', '#222'] : [accentColor, shadeColor(accentColor, -30)]} style={sc.btnGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
               <Coins color={disabled ? 'rgba(255,255,255,0.3)' : '#fff'} size={13} strokeWidth={2.5} />
               <Text style={[sc.btnText, disabled && { opacity: 0.3 }]}>{price}</Text>
             </LinearGradient>
           </TouchableOpacity>
+        )}
+        {locked && (
+          <View style={[sc.btn, sc.btnLocked]}>
+            <View style={[sc.btnGrad, { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
+              <Lock color="rgba(255,255,255,0.25)" size={13} strokeWidth={2.5} />
+              <Text style={[sc.btnText, { opacity: 0.25 }]}>🔒 Nv. {lockedLevel}</Text>
+            </View>
+          </View>
         )}
         {onRevive && (
           <TouchableOpacity style={sc.btn} onPress={onRevive} activeOpacity={0.85}>
@@ -128,6 +148,18 @@ const sc = StyleSheet.create({
     }),
   },
   deadWrap: { borderColor: 'rgba(168,85,247,0.3)' },
+  lockedWrap: { borderColor: 'rgba(255,255,255,0.05)' },
+  lockedOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+    gap: 4,
+  },
+  lockedText: { color: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: '900', letterSpacing: 0.5 },
+  btnLocked: { opacity: 1 },
   glowTop: { height: 3, width: '100%' },
   rarityBadge: { position: 'absolute', top: 10, right: 8, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, borderWidth: 1, zIndex: 2 },
   rarityText: { fontSize: 8, fontWeight: '900', letterSpacing: 0.8 },

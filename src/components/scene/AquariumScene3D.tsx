@@ -2,7 +2,7 @@
 
 import { OrthographicCamera } from '@react-three/drei';
 import { Canvas, useThree } from '@react-three/fiber';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import * as THREE from 'three';
 import { useGameStore } from '../../store/useGameStore';
 import Fish3D from '../fishes/Fish3D';

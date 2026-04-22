@@ -4,6 +4,8 @@ import { useGameStore } from '../store/useGameStore';
 export const useGameLoop = () => {
   const lastSaved = useGameStore(state => state.lastSaved);
   const lastTimeRef = useRef(lastSaved || Date.now());
+  const lastSaveRef = useRef(Date.now());
+  const lastCoinSpawnRef = useRef(Date.now());
 
   useEffect(() => {
     // Runs once a second to update slow-moving stats
@@ -101,13 +103,49 @@ export const useGameLoop = () => {
         }
       }
 
+      // BUG #6 FIX: Remove dead fish from local list BEFORE calling updateFishes
+      const survivingFishes = fishes.filter(f => !deaths.includes(f.id));
+
       const latestState = useGameStore.getState();
       if (deaths.length > 0) {
          deaths.forEach(id => latestState.killFish(id));
       }
       
       if (hasUpdates) {
-         latestState.updateFishes(() => fishes);
+         latestState.updateFishes(() => survivingFishes);
+      }
+
+      // --- COIN SPAWNING: Adult fish generate coins every 30 seconds ---
+      const timeSinceLastCoinSpawn = now - lastCoinSpawnRef.current;
+      if (timeSinceLastCoinSpawn >= 30000) { // Every 30 seconds
+        lastCoinSpawnRef.current = now;
+        const currentState = useGameStore.getState();
+        const adultFish = currentState.fishes.filter(f => f.stage === 'adult');
+        
+        // Each adult fish has a chance to spawn a coin (as 2D overlay icon)
+        adultFish.forEach(fish => {
+          // Skip fish that already have a pending coin
+          if (currentState.fishCoins[fish.id]) return;
+
+          if (Math.random() < 0.6) { // 60% chance per fish per 30s
+            const coinValue = fish.rarity === 'legendary' ? 10 
+              : fish.rarity === 'epic' ? 5 
+              : fish.rarity === 'rare' ? 3 
+              : 1;
+
+            // Happiness affects coin generation: happy fish generate more
+            const happinessBonus = (fish.happiness || 50) / 100;
+            const finalValue = Math.max(1, Math.round(coinValue * happinessBonus));
+
+            currentState.spawnCoinOnFish(fish.id, finalValue);
+          }
+        });
+      }
+
+      // --- PERIODIC SAVE: Save to cloud every 60 seconds if there are updates ---
+      if (now - lastSaveRef.current > 60000) {
+        lastSaveRef.current = now;
+        useGameStore.getState().pushToCloud();
       }
 
     }, 1000); // 1 second interval

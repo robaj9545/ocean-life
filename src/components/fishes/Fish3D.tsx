@@ -1,7 +1,7 @@
 
 
 import { useFrame, useThree } from '@react-three/fiber';
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { FishEntity, useGameStore } from '../../store/useGameStore';
 import { getSandHeight } from '../scene/Environment3D';
@@ -53,6 +53,7 @@ export default function Fish3D({ fish, setSelectedFish, hungryRefs }: Fish3DProp
   const fin2Ref = useRef<THREE.Mesh>(null);
 
   const initialZ = useRef((Math.random() - 0.5) * 3);
+  const coinFrameCounter = useRef(0);
 
   const visibleWidth = size.width / camera.zoom;
   const visibleHeight = size.height / camera.zoom;
@@ -66,7 +67,9 @@ export default function Fish3D({ fish, setSelectedFish, hungryRefs }: Fish3DProp
     initialZ.current
   );
 
-  const [targetPos, setTargetPos] = useState(randomTarget());
+  // BUG #12 FIX: useRef instead of useState to avoid re-renders when target changes
+  const targetPosRef = useRef(randomTarget());
+  const targetPos = targetPosRef.current;
   
   const { bodyColor, stripeColor, finColor } = useMemo(() => {
     if (fish.species === 'clownfish') return { bodyColor: '#FF6B1A', stripeColor: '#FFFFFF', finColor: '#FF8C00' };
@@ -138,19 +141,34 @@ export default function Fish3D({ fish, setSelectedFish, hungryRefs }: Fish3DProp
     groupRef.current.position.add(avoidanceForce);
     // ----------------------------------------------------
 
-    // 2D Projection for hunger icon overlay
+    // 2D Projection for hunger + coin icon overlay
     if (hungryRefs && hungryRefs.current) {
-      if (fish.hunger < 30) {
-        const vec = groupRef.current.position.clone();
-        // Displace the icon slightly above the fish
-        vec.y += 0.6;
-        vec.project(camera);
-        const x = (vec.x * 0.5 + 0.5) * size.width;
-        const y = -(vec.y * 0.5 - 0.5) * size.height;
-        hungryRefs.current[fish.id] = { id: fish.id, x, y, isHungry: true };
-      } else {
-        if (hungryRefs.current[fish.id]) hungryRefs.current[fish.id].isHungry = false;
+      const vec = groupRef.current.position.clone();
+      vec.y += 0.6;
+      vec.project(camera);
+      const x = (vec.x * 0.5 + 0.5) * size.width;
+      const y = -(vec.y * 0.5 - 0.5) * size.height;
+
+      // PERF: Only check fishCoins store every 30 frames (~2x/sec) instead of every frame
+      coinFrameCounter.current++;
+      let hasCoin = hungryRefs.current[fish.id]?.hasCoin ?? false;
+      let coinValue = hungryRefs.current[fish.id]?.coinValue ?? 0;
+      if (coinFrameCounter.current % 30 === 0) {
+        const fishCoins = useGameStore.getState().fishCoins;
+        hasCoin = !!fishCoins[fish.id];
+        coinValue = fishCoins[fish.id] || 0;
       }
+
+      const isHungry = fish.hunger < 30;
+
+      hungryRefs.current[fish.id] = {
+        id: fish.id,
+        x,
+        y,
+        isHungry,
+        hasCoin,
+        coinValue,
+      };
     }
 
     // Strict 2.5D Sideways swimming ("só podem nadas de lado")
@@ -168,14 +186,16 @@ export default function Fish3D({ fish, setSelectedFish, hungryRefs }: Fish3DProp
     // Gentle rolling of the fish's body
     groupRef.current.rotation.z = Math.sin(time * 2 * speedScale.current) * 0.04;
 
-    // Slower, rhythmic fin wiggling
-    if (tailRef.current) tailRef.current.rotation.y = Math.sin(time * 5 * speedScale.current) * 0.35;
-    if (fin1Ref.current) fin1Ref.current.rotation.x = Math.sin(time * 4 * speedScale.current) * 0.25;
-    if (fin2Ref.current) fin2Ref.current.rotation.x = -Math.sin(time * 4 * speedScale.current) * 0.25;
+    // Tail animation proportional to actual fish speed
+    const animSpeed = (fish.speed || 0.5) * 8;
+    if (tailRef.current) tailRef.current.rotation.y = Math.sin(time * animSpeed * speedScale.current) * 0.35;
+    if (fin1Ref.current) fin1Ref.current.rotation.x = Math.sin(time * (animSpeed * 0.8) * speedScale.current) * 0.25;
+    if (fin2Ref.current) fin2Ref.current.rotation.x = -Math.sin(time * (animSpeed * 0.8) * speedScale.current) * 0.25;
 
-    // Changing target when getting close
+    // Changing target when getting close — mutate ref instead of setState
     if (currentPos.distanceTo(targetPos) < 1.2) {
-      setTargetPos(randomTarget());
+      const newTarget = randomTarget();
+      targetPosRef.current.copy(newTarget);
       // Rerandomize their behavior rhythm slightly
       speedScale.current = Math.random() * 0.4 + 0.6;
     }
@@ -214,7 +234,7 @@ export default function Fish3D({ fish, setSelectedFish, hungryRefs }: Fish3DProp
       {/* === BODY OUTLINE (cartoon contour) === */}
       <group scale={[bodyScale[0]*1.06, bodyScale[1]*1.06, bodyScale[2]*1.06]}>
         <mesh rotation={[0, 0, -1.57]}>
-          <capsuleGeometry args={[0.41, 0.32, 32, 32]} />
+          <capsuleGeometry args={[0.41, 0.32, 16, 16]} />
           <meshBasicMaterial color={isGhost?'#607080':isLevi?'#042818':isDragon?'#050210':'#1A1A1A'} side={1} />
         </mesh>
       </group>
@@ -222,7 +242,7 @@ export default function Fish3D({ fish, setSelectedFish, hungryRefs }: Fish3DProp
       {/* === BODY FILL === */}
       <group scale={bodyScale}>
         <mesh castShadow receiveShadow rotation={[0, 0, -1.57]}>
-          <capsuleGeometry args={[0.4, 0.3, 32, 32]} />
+          <capsuleGeometry args={[0.4, 0.3, 16, 16]} />
           <BodyMaterial color={bodyColor} species={sp} />
         </mesh>
       </group>
@@ -283,11 +303,11 @@ export default function Fish3D({ fish, setSelectedFish, hungryRefs }: Fish3DProp
           <group key={`cs-${i}`}>
             {/* Black border ring */}
             <mesh position={[x, 0, 0]} rotation={[0, 1.57, 1.57]} scale={[1.05 - i * 0.05, 1.0 - i * 0.04, 0.5]}>
-              <torusGeometry args={[0.44, 0.13, 32, 64]} /><meshBasicMaterial color="#111111" />
+              <torusGeometry args={[0.44, 0.13, 16, 32]} /><meshBasicMaterial color="#111111" />
             </mesh>
             {/* White fill ring */}
             <mesh position={[x, 0, 0]} rotation={[0, 1.57, 1.57]} scale={[1.02 - i * 0.05, 0.97 - i * 0.04, 0.48]}>
-              <torusGeometry args={[0.44, 0.09, 32, 64]} /><GlossyMaterial color="#FFFFFF" />
+              <torusGeometry args={[0.44, 0.09, 16, 32]} /><GlossyMaterial color="#FFFFFF" />
             </mesh>
           </group>
         ))}
@@ -538,11 +558,11 @@ export default function Fish3D({ fish, setSelectedFish, hungryRefs }: Fish3DProp
       {[0.34,-0.34].map((z,ei) => (
         <group key={`eye-${ei}`} position={[eyeX,eyeY,z]} rotation={[0,z>0?0.45:-0.45,-0.1]}>
           {/* Eye outline ring */}
-          <mesh><sphereGeometry args={[eyeSize*1.15,32,32]} />
+          <mesh><sphereGeometry args={[eyeSize*1.15,12,12]} />
             <meshBasicMaterial color={isGhost?'#4A6070':isLevi?'#3A2800':'#111111'} />
           </mesh>
           {/* Sclera */}
-          <mesh><sphereGeometry args={[eyeSize,32,32]} />
+          <mesh><sphereGeometry args={[eyeSize,12,12]} />
             <meshPhysicalMaterial
               color={isLevi?'#FFD700':isGhost?'#E0EEF8':'#FFFFFF'}
               roughness={0.05} clearcoat={1.0}
@@ -551,12 +571,12 @@ export default function Fish3D({ fish, setSelectedFish, hungryRefs }: Fish3DProp
           </mesh>
           {!isLevi && <>
             {/* Iris */}
-            <mesh position={[0.08,0,z>0?0.10:-0.10]}><sphereGeometry args={[eyeSize*0.58,32,32]} />
+            <mesh position={[0.08,0,z>0?0.10:-0.10]}><sphereGeometry args={[eyeSize*0.58,12,12]} />
               <meshPhysicalMaterial color={
                 isGhost?'#7AAED0':isDragon?'#5A0090':isSpider?'#7A5A10':isLion?'#8B4500':'#00B8D9'
               } roughness={0.05} clearcoat={1.0} /></mesh>
             {/* Pupil */}
-            <mesh position={[0.13,0,z>0?0.13:-0.13]}><sphereGeometry args={[eyeSize*0.32,32,32]} />
+            <mesh position={[0.13,0,z>0?0.13:-0.13]}><sphereGeometry args={[eyeSize*0.32,12,12]} />
               <meshBasicMaterial color={isDragon?'#1A0030':'#000000'} /></mesh>
             {/* Main catchlight */}
             <mesh position={[0.15,0.06,z>0?0.15:-0.15]}><sphereGeometry args={[eyeSize*0.18,16,16]} />

@@ -1,4 +1,5 @@
 import { FishEntity } from '../store/useGameStore'
+import { generateDNA, getDNAQuality } from '../utils/dna'
 
 interface CreateFishProps {
   rarity?: 'common' | 'rare' | 'epic' | 'legendary';
@@ -26,7 +27,11 @@ export const createFish = ({ rarity = 'common', species, stage = 'baby' }: Creat
   else if (finalSpecies === 'ghostshark') color = '#E0FFFF';
   else if (finalSpecies === 'leviathan') color = '#4B0082';
 
-  const initialSize = 25;
+  // Generate DNA and use quality for stats
+  const dna = generateDNA();
+  const quality = getDNAQuality(dna);
+  const initialSize = 18 + quality * 2;
+  const initialSpeed = 0.3 + quality * 0.1;
 
   return {
     type: 'fish',
@@ -34,7 +39,7 @@ export const createFish = ({ rarity = 'common', species, stage = 'baby' }: Creat
     rarity,
     color,
     size: initialSize,
-    speed: 0.5 + Math.random() * 0.5,
+    speed: initialSpeed,
     hunger: 100,
     happiness: 100,
     health: 100,
@@ -45,5 +50,6 @@ export const createFish = ({ rarity = 'common', species, stage = 'baby' }: Creat
     },
     direction: 1,
     stage,
+    dna,
   }
 }
