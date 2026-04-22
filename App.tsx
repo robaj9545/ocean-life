@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, ActivityIndicator, LogBox, Platform, StatusBar, AppState } from 'react-native'
-import { StatusBar as ExpoStatusBar } from 'expo-status-bar'
+import { View, Text, ActivityIndicator, LogBox, Platform, AppState } from 'react-native'
+import { setStatusBarHidden } from 'expo-status-bar'
 import * as NavigationBar from 'expo-navigation-bar'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { supabase } from './src/services/supabase'
@@ -24,8 +24,8 @@ export default function App() {
   // ─── Immersive Mode: Hide system bars ──────────────────────────────────────
   useEffect(() => {
     const hideSystemBars = () => {
-      // Hide status bar on both platforms
-      StatusBar.setHidden(true, 'fade')
+      // Hide status bar using expo-status-bar imperative API (works in Expo Go)
+      setStatusBarHidden(true, 'fade')
       
       // Hide Android navigation bar (bottom bar with back/home/recent)
       if (Platform.OS === 'android') {
@@ -147,7 +147,6 @@ export default function App() {
   if (!isReady) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#002244' }}>
-        <ExpoStatusBar hidden />
         <ActivityIndicator size="large" color="#00BFFF" />
         <Text style={{ color: '#fff', marginTop: spacing.md, fontWeight: 'bold', fontSize: fonts.base }}>Conectando Fundo do Mar...</Text>
       </View>
@@ -157,7 +156,6 @@ export default function App() {
   return (
     <AlertProvider>
       <View style={{ flex: 1, backgroundColor: '#002244' }}>
-        <ExpoStatusBar hidden />
         {session && session.user ? (
           <>
             <AquariumScreen />

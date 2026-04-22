@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   Animated,
   Platform,
@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
-import { Coins, ArrowUpCircle, Lock, Clock } from 'lucide-react-native'
+import { Coins, ArrowUpCircle, Lock, Clock, Minus, Plus } from 'lucide-react-native'
 import { scale, fonts, spacing, radius, iconSize } from '../../utils/responsive'
 
 export function ShopCard({
@@ -27,6 +27,8 @@ export function ShopCard({
   onRevive,
   locked,
   lockedLevel,
+  showQuantity,
+  maxQuantity = 99,
 }: {
   title: string
   description: string
@@ -35,7 +37,7 @@ export function ShopCard({
   price: number
   accentColor: string
   preview: React.ReactNode
-  onBuy?: () => void
+  onBuy?: (quantity: number) => void
   disabled?: boolean
   index?: number
   dead?: boolean
@@ -43,9 +45,12 @@ export function ShopCard({
   onRevive?: () => void
   locked?: boolean
   lockedLevel?: number
+  showQuantity?: boolean
+  maxQuantity?: number
 }) {
   const enter = useRef(new Animated.Value(0)).current
   const pressAnim = useRef(new Animated.Value(1)).current
+  const [qty, setQty] = useState(1)
 
   useEffect(() => {
     Animated.spring(enter, {
@@ -59,6 +64,9 @@ export function ShopCard({
 
   const onPressIn = () => Animated.spring(pressAnim, { toValue: 0.95, useNativeDriver: true, tension: 300 }).start()
   const onPressOut = () => Animated.spring(pressAnim, { toValue: 1, useNativeDriver: true, tension: 300 }).start()
+
+  const totalPrice = price * qty
+  const canAfford = !disabled || qty === 1 // Will be checked via totalPrice in parent
 
   return (
     <Animated.View
@@ -103,11 +111,52 @@ export function ShopCard({
           </View>
         )}
 
+        {/* Quantity Selector */}
+        {showQuantity && !locked && (
+          <View style={sc.qtyRow}>
+            <TouchableOpacity
+              style={[sc.qtyBtn, qty <= 1 && sc.qtyBtnDisabled]}
+              onPress={() => setQty(Math.max(1, qty - 1))}
+              disabled={qty <= 1}
+              activeOpacity={0.7}
+            >
+              <Minus color={qty <= 1 ? 'rgba(255,255,255,0.2)' : '#fff'} size={iconSize.xs} strokeWidth={3} />
+            </TouchableOpacity>
+
+            <View style={sc.qtyDisplay}>
+              <Text style={sc.qtyText}>{qty}</Text>
+            </View>
+
+            <TouchableOpacity
+              style={[sc.qtyBtn, qty >= maxQuantity && sc.qtyBtnDisabled]}
+              onPress={() => setQty(Math.min(maxQuantity, qty + 1))}
+              disabled={qty >= maxQuantity}
+              activeOpacity={0.7}
+            >
+              <Plus color={qty >= maxQuantity ? 'rgba(255,255,255,0.2)' : '#fff'} size={iconSize.xs} strokeWidth={3} />
+            </TouchableOpacity>
+          </View>
+        )}
+
         {onBuy && !locked && (
-          <TouchableOpacity style={[sc.btn, disabled && sc.btnDisabled]} onPress={onBuy} onPressIn={onPressIn} onPressOut={onPressOut} disabled={disabled} activeOpacity={0.85}>
-            <LinearGradient colors={disabled ? ['#333', '#222'] : [accentColor, shadeColor(accentColor, -30)]} style={sc.btnGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+          <TouchableOpacity
+            style={[sc.btn, disabled && sc.btnDisabled]}
+            onPress={() => onBuy(qty)}
+            onPressIn={onPressIn}
+            onPressOut={onPressOut}
+            disabled={disabled}
+            activeOpacity={0.85}
+          >
+            <LinearGradient
+              colors={disabled ? ['#333', '#222'] : [accentColor, shadeColor(accentColor, -30)]}
+              style={sc.btnGrad}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
               <Coins color={disabled ? 'rgba(255,255,255,0.3)' : '#fff'} size={iconSize.xs} strokeWidth={2.5} />
-              <Text style={[sc.btnText, disabled && { opacity: 0.3 }]}>{price}</Text>
+              <Text style={[sc.btnText, disabled && { opacity: 0.3 }]}>
+                {showQuantity ? totalPrice.toLocaleString() : price.toLocaleString()}
+              </Text>
             </LinearGradient>
           </TouchableOpacity>
         )}
@@ -174,6 +223,47 @@ const sc = StyleSheet.create({
   desc: { fontSize: fonts.sm, color: 'rgba(255,255,255,0.45)', lineHeight: fonts.base + 2, fontWeight: '600' },
   daysRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   daysLeft: { fontSize: fonts.sm, color: 'rgba(168,85,247,0.8)', fontWeight: '700' },
+
+  // Quantity selector
+  qtyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+  },
+  qtyBtn: {
+    width: scale(26),
+    height: scale(26),
+    borderRadius: radius.sm,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  qtyBtnDisabled: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  qtyDisplay: {
+    minWidth: scale(30),
+    height: scale(26),
+    borderRadius: radius.xs,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  qtyText: {
+    color: '#fff',
+    fontWeight: '900',
+    fontSize: fonts.base,
+    letterSpacing: 0.5,
+  },
+
   btn: { borderRadius: radius.md, overflow: 'hidden', marginTop: spacing.xs },
   btnDisabled: { opacity: 0.5 },
   btnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.sm, gap: spacing.xs },

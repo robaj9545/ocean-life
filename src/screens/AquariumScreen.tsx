@@ -210,7 +210,7 @@ export default function AquariumScreen() {
       {/* ── MODALS ── */}
 
       {activeModal && (
-         <Modal transparent animationType="fade" visible={!!activeModal}>
+         <Modal transparent animationType="fade" visible={!!activeModal} statusBarTranslucent>
            <View style={styles.modalBackdrop}>
               <View style={[styles.modalContent, { width: '95%', maxWidth: scale(780), maxHeight: '90%', flex: 1, marginVertical: '5%' }]}>
                 {activeModal === 'Shop' && <ShopScreen onClose={() => setActiveModal(null)} />}

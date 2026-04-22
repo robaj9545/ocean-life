@@ -34,7 +34,7 @@ export default function RenameFishModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <Modal transparent animationType="fade">
+    <Modal transparent animationType="fade" statusBarTranslucent>
       <View style={s.overlay}>
         <View style={s.modal}>
           <TouchableOpacity style={s.closeBtn} onPress={onClose}>

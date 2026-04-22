@@ -46,12 +46,14 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
 
   const buyNicknameItem = useGameStore(state => state.buyNicknameItem)
 
-  const buyFood = (price: number, amount: number) => {
-    if (coins >= price) {
-      addCoins(-price)
-      addFood(amount)
-      incrementStat('buy_food', 1)
-      alert({ type: 'success', title: 'Comprado!', message: `${amount} porções de ração adicionadas!` })
+  const buyFood = (price: number, amount: number, qty: number = 1) => {
+    const totalCost = price * qty
+    const totalAmount = amount * qty
+    if (coins >= totalCost) {
+      addCoins(-totalCost)
+      addFood(totalAmount)
+      incrementStat('buy_food', qty)
+      alert({ type: 'success', title: 'Comprado!', message: `${totalAmount} porções de ração adicionadas!` })
     } else {
       alert({ type: 'error', title: 'Saldo insuficiente', message: 'Você não tem moedas suficientes!' })
     }
@@ -66,18 +68,32 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
     }
   }
 
-  const buyFish = async (price: number, species: string, rarity: 'common' | 'rare' | 'epic' | 'legendary') => {
-    if (coins >= price) {
-      addCoins(-price)
-      const fishData = createFish({ species, rarity, stage: 'baby' })
-      const { data } = await fishService.createFishOnServer(fishData)
-      if (data) {
-        addFish(data)
-        incrementStat('buy_fish', 1)
-        alert({ type: 'success', title: 'Comprado!', message: `Seu ${getSpeciesName(species)} filhote já está no aquário!` })
-      } else {
-        addCoins(price)
-        alert({ type: 'error', title: 'Erro', message: 'Não foi possível salvar. Tente novamente.' })
+  const buyFish = async (price: number, species: string, rarity: 'common' | 'rare' | 'epic' | 'legendary', qty: number = 1) => {
+    const totalCost = price * qty
+    if (coins >= totalCost) {
+      addCoins(-totalCost)
+      try {
+        // Create all fish data locally first
+        const fishDataArray = Array.from({ length: qty }, () => createFish({ species, rarity, stage: 'baby' }))
+        // Single batch insert to Supabase
+        const { data, error } = await fishService.createManyFishOnServer(fishDataArray)
+        if (error) {
+          console.error('createManyFishOnServer error:', error)
+        }
+        if (data && data.length > 0) {
+          data.forEach(fish => addFish(fish))
+          incrementStat('buy_fish', data.length)
+          const name = getSpeciesName(species)
+          alert({ type: 'success', title: 'Comprado!', message: data.length === 1 ? `Seu ${name} filhote já está no aquário!` : `${data.length}x ${name} filhotes adicionados ao aquário!` })
+        } else {
+          // Full refund on failure
+          addCoins(totalCost)
+          alert({ type: 'error', title: 'Erro', message: `Não foi possível salvar. ${error?.message || 'Tente novamente.'}` })
+        }
+      } catch (e: any) {
+        console.error('buyFish exception:', e)
+        addCoins(totalCost)
+        alert({ type: 'error', title: 'Erro', message: `Falha na compra: ${e?.message || 'Erro desconhecido'}` })
       }
     } else {
       alert({ type: 'error', title: 'Saldo insuficiente', message: 'Você não tem moedas suficientes!' })
@@ -151,8 +167,9 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                 accentColor="#FF7043"
                 price={50}
                 preview={<ClownfishSVG size={scale(68)} />}
-                onBuy={() => buyFish(50, 'clownfish', 'common')}
+                onBuy={(qty) => buyFish(50, 'clownfish', 'common', qty)}
                 disabled={coins < 50}
+                showQuantity
               />
               <ShopCard
                 index={1}
@@ -163,8 +180,9 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                 accentColor="#29B6F6"
                 price={150}
                 preview={<BlueTangSVG size={scale(76)} />}
-                onBuy={() => buyFish(150, 'bluetang', 'common')}
+                onBuy={(qty) => buyFish(150, 'bluetang', 'common', qty)}
                 disabled={coins < 150}
+                showQuantity
               />
               <ShopCard
                 index={2}
@@ -175,10 +193,11 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                 accentColor="#8B008B"
                 price={500}
                 preview={<Bug color="#8B008B" size={iconSize.xxl} strokeWidth={1.5} />}
-                onBuy={() => buyFish(500, 'spiderfish', 'rare')}
+                onBuy={(qty) => buyFish(500, 'spiderfish', 'rare', qty)}
                 disabled={coins < 500}
                 locked={level < LEVEL_UNLOCKS.spiderfish}
                 lockedLevel={LEVEL_UNLOCKS.spiderfish}
+                showQuantity
               />
               <ShopCard
                 index={3}
@@ -189,10 +208,11 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                 accentColor="#B22222"
                 price={750}
                 preview={<Crown color="#B22222" size={iconSize.xxl} strokeWidth={1.5} />}
-                onBuy={() => buyFish(750, 'lionfish', 'rare')}
+                onBuy={(qty) => buyFish(750, 'lionfish', 'rare', qty)}
                 disabled={coins < 750}
                 locked={level < LEVEL_UNLOCKS.lionfish}
                 lockedLevel={LEVEL_UNLOCKS.lionfish}
+                showQuantity
               />
               <ShopCard
                 index={4}
@@ -203,10 +223,11 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                 accentColor="#00FA9A"
                 price={2000}
                 preview={<Flame color="#00FA9A" size={iconSize.xxl} strokeWidth={1.5} />}
-                onBuy={() => buyFish(2000, 'dragonfish', 'epic')}
+                onBuy={(qty) => buyFish(2000, 'dragonfish', 'epic', qty)}
                 disabled={coins < 2000}
                 locked={level < LEVEL_UNLOCKS.dragonfish}
                 lockedLevel={LEVEL_UNLOCKS.dragonfish}
+                showQuantity
               />
               <ShopCard
                 index={5}
@@ -217,10 +238,11 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                 accentColor="#E0FFFF"
                 price={2500}
                 preview={<Ghost color="#E0FFFF" size={iconSize.xxl} strokeWidth={1.5} />}
-                onBuy={() => buyFish(2500, 'ghostshark', 'epic')}
+                onBuy={(qty) => buyFish(2500, 'ghostshark', 'epic', qty)}
                 disabled={coins < 2500}
                 locked={level < LEVEL_UNLOCKS.ghostshark}
                 lockedLevel={LEVEL_UNLOCKS.ghostshark}
+                showQuantity
               />
               <ShopCard
                 index={6}
@@ -231,10 +253,11 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                 accentColor="#4B0082"
                 price={10000}
                 preview={<Anchor color="#4B0082" size={iconSize.xxl} strokeWidth={1.5} />}
-                onBuy={() => buyFish(10000, 'leviathan', 'legendary')}
+                onBuy={(qty) => buyFish(10000, 'leviathan', 'legendary', qty)}
                 disabled={coins < 10000}
                 locked={level < LEVEL_UNLOCKS.leviathan}
                 lockedLevel={LEVEL_UNLOCKS.leviathan}
+                showQuantity
               />
             </>
           )}
@@ -250,8 +273,9 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                 accentColor="#FF8C00"
                 price={30}
                 preview={<Drumstick color="#FF8C00" size={iconSize.xxl} strokeWidth={1.5} />}
-                onBuy={() => buyFood(30, 10)}
+                onBuy={(qty) => buyFood(30, 10, qty)}
                 disabled={coins < 30}
+                showQuantity
               />
               <ShopCard
                 index={1}
@@ -262,8 +286,9 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                 accentColor="#FF4500"
                 price={120}
                 preview={<PackageOpen color="#FF4500" size={iconSize.xxl} strokeWidth={1.5} />}
-                onBuy={() => buyFood(120, 50)}
+                onBuy={(qty) => buyFood(120, 50, qty)}
                 disabled={coins < 120}
+                showQuantity
               />
               <ShopCard
                 index={2}
@@ -274,8 +299,9 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
                 accentColor="#FF1493"
                 price={400}
                 preview={<PackageOpen color="#FF1493" size={iconSize.xxl} strokeWidth={1.5} />}
-                onBuy={() => buyFood(400, 200)}
+                onBuy={(qty) => buyFood(400, 200, qty)}
                 disabled={coins < 400}
+                showQuantity
               />
             </>
           )}

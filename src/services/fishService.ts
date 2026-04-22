@@ -51,7 +51,7 @@ export const fishService = {
 
     const { data, error } = await supabase
       .from('fishes')
-      .upsert(formattedFishes)
+      .upsert(formattedFishes, { onConflict: 'id' })
     return { data, error }
   },
 
@@ -97,6 +97,49 @@ export const fishService = {
     }
     
     return { data: null, error }
+  },
+
+  createManyFishOnServer: async (fishDataArray: Omit<FishEntity, 'id'>[]): Promise<{ data: FishEntity[]; error: any }> => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { data: [], error: 'No user' }
+
+    const formattedFishes = fishDataArray.map(fishData => ({
+      profile_id: user.id,
+      type: fishData.type,
+      species: fishData.species,
+      rarity: fishData.rarity,
+      color: fishData.color,
+      size: fishData.size,
+      speed: fishData.speed,
+      hunger: fishData.hunger,
+      happiness: fishData.happiness,
+      age: fishData.age,
+      position_x: Math.round(fishData.position.x),
+      position_y: Math.round(fishData.position.y),
+      direction: fishData.direction,
+      stage: fishData.stage || null,
+      health: fishData.health ?? null,
+      dna: fishData.dna ? JSON.stringify(fishData.dna) : null,
+      nickname: fishData.nickname || null,
+    }))
+
+    const { data, error } = await supabase
+      .from('fishes')
+      .insert(formattedFishes)
+      .select()
+      
+    if (data && data.length > 0) {
+      const insertedFishes: FishEntity[] = data.map((d: any, i: number) => ({
+        ...fishDataArray[i],
+        id: d.id,
+        position: { x: d.position_x, y: d.position_y },
+        dna: d.dna ? (typeof d.dna === 'string' ? JSON.parse(d.dna) : d.dna) : fishDataArray[i].dna,
+        nickname: d.nickname || fishDataArray[i].nickname,
+      }))
+      return { data: insertedFishes, error: null }
+    }
+    
+    return { data: [], error }
   },
 
   loadFishes: async () => {
@@ -168,7 +211,7 @@ export const fishService = {
 
     const { data, error } = await supabase
       .from('dead_fishes')
-      .upsert(formatted)
+      .upsert(formatted, { onConflict: 'id' })
     return { data, error }
   },
 
