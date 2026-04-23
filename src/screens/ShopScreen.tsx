@@ -22,6 +22,7 @@ import { LoadingOverlay } from '../components/ui/LoadingOverlay'
 import RenameFishModal from '../components/screens/RenameFishModal'
 import { getSpeciesName, getReviveCost, getSpeciesIcon, getSpeciesColor } from '../data/species'
 import { scale, sidePanel, fonts, spacing, radius, iconSize } from '../utils/responsive'
+import { hapticMedium, hapticError, hapticSelection } from '../utils/haptics'
 
 type Tab = 'shop' | 'food' | 'cemetery' | 'decorations'
 
@@ -175,6 +176,7 @@ export default function ShopScreen({ onClose }: { onClose?: () => void }) {
   // ─── Confirm handler ──────────────────────────────────────────────────────
   const handleConfirm = async () => {
     if (!pendingAction) return
+    hapticMedium() // Haptic feedback on purchase confirmation
     const action = pendingAction.action
     setPendingAction(null)
     await action()

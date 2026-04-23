@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   Animated,
   Platform,
@@ -10,8 +10,10 @@ import {
 import { LinearGradient } from 'expo-linear-gradient'
 import { Coins, Drumstick, X, Star, Sprout, Heart, Sparkles } from 'lucide-react-native'
 import { StatBar } from './Stats'
+import { ConfirmModal } from './ConfirmModal'
 import { getSpeciesName, getSpeciesIcon, getSpeciesColor } from '../../data/species'
 import { scale, moderateScale, fonts, spacing, radius, iconSize } from '../../utils/responsive'
+import { hapticLight, hapticSuccess, hapticMedium } from '../../utils/haptics'
 
 // ─── FishPanel ───────────────────────────────────────────────────────────────
 export function FishPanel({
@@ -27,6 +29,7 @@ export function FishPanel({
 }) {
   const slideAnim = useRef(new Animated.Value(300)).current
   const opacAnim = useRef(new Animated.Value(0)).current
+  const [showSellConfirm, setShowSellConfirm] = useState(false)
 
   useEffect(() => {
     Animated.parallel([
@@ -89,13 +92,27 @@ export function FishPanel({
       </View>
 
       {isAdult && (
-        <TouchableOpacity style={fp.sellBtn} onPress={onSell} activeOpacity={0.85}>
+        <TouchableOpacity style={fp.sellBtn} onPress={() => setShowSellConfirm(true)} activeOpacity={0.85}>
           <LinearGradient colors={['#FFD700', '#FFA500']} style={fp.sellGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
             <Coins color="#000" size={iconSize.md} strokeWidth={2.5} />
             <Text style={fp.sellText}>VENDER POR {displayPrice.toLocaleString()}</Text>
           </LinearGradient>
         </TouchableOpacity>
       )}
+
+      {/* FIX: Sell confirmation modal to prevent accidental sales */}
+      <ConfirmModal
+        visible={showSellConfirm}
+        title="Vender Peixe?"
+        message={`Tem certeza que deseja vender ${speciesName}? Esta ação é irreversível.`}
+        price={displayPrice}
+        confirmLabel="Vender"
+        cancelLabel="Cancelar"
+        accentColor="#FFD700"
+        destructive={false}
+        onConfirm={() => { setShowSellConfirm(false); onSell(); }}
+        onCancel={() => setShowSellConfirm(false)}
+      />
     </Animated.View>
   )
 }
@@ -138,7 +155,12 @@ export function HungryBubble({ spot, onFeed }: { spot: any; onFeed: () => void }
 
   return (
     <Animated.View style={[hb.wrap, { left: spot.x - bubbleSize / 2, top: spot.y - bubbleSize - scale(10), transform: [{ scale: pulseAnim }] }]}>
-      <TouchableOpacity style={[hb.bubble, { width: bubbleSize, height: bubbleSize, borderRadius: bubbleSize / 2 }]} onPress={onFeed} activeOpacity={0.8}>
+      <TouchableOpacity
+        style={[hb.bubble, { width: bubbleSize, height: bubbleSize, borderRadius: bubbleSize / 2 }]}
+        onPress={() => { hapticLight(); onFeed(); }}
+        activeOpacity={0.8}
+        hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+      >
         <Drumstick color="#FFA500" size={iconSize.md} />
       </TouchableOpacity>
       <View style={hb.tail} />
@@ -187,7 +209,12 @@ export function CoinBubble({ spot, onCollect, hasHungry }: { spot: any; onCollec
         ],
       },
     ]}>
-      <TouchableOpacity style={[cb.bubble, { width: bubbleSize, height: bubbleSize, borderRadius: bubbleSize / 2 }]} onPress={onCollect} activeOpacity={0.8}>
+      <TouchableOpacity
+        style={[cb.bubble, { width: bubbleSize, height: bubbleSize, borderRadius: bubbleSize / 2 }]}
+        onPress={() => { hapticSuccess(); onCollect(); }}
+        activeOpacity={0.8}
+        hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+      >
         <Coins color="#FFD700" size={iconSize.md} strokeWidth={2.5} />
         {spot.coinValue > 1 && (
           <View style={cb.valueBadge}>

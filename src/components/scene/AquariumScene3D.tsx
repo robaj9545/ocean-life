@@ -8,6 +8,16 @@ import { useGameStore } from '../../store/useGameStore';
 import Fish3D from '../fishes/Fish3D';
 import Environment3D from './Environment3D';
 
+// Simple fallback shown while 3D textures load
+const SuspenseFallback = () => {
+  return (
+    <mesh>
+      <planeGeometry args={[20, 14]} />
+      <meshBasicMaterial color="#061a33" />
+    </mesh>
+  );
+};
+
 interface AquariumSceneProps {
   setSelectedFish: (fish: any) => void;
   hungryRefs?: React.MutableRefObject<any>;
@@ -36,14 +46,14 @@ export default function AquariumScene3D({ setSelectedFish, hungryRefs }: Aquariu
       <OrthographicCamera makeDefault position={[0, 0, 10]} zoom={55} />
       <ResponsiveCamera />
       
-      <React.Suspense fallback={null}>
+      <React.Suspense fallback={<SuspenseFallback />}>
         <group>
           <Environment3D />
         </group>
 
-        {fishes.map((fish, index) => (
+        {fishes.map((fish) => (
           <Fish3D 
-            key={`${fish.id}_${index}`} 
+            key={fish.id} 
             fish={fish} 
             setSelectedFish={setSelectedFish} 
             hungryRefs={hungryRefs}

@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput } from 'react-native'
+import React, { useEffect, useRef, useState } from 'react'
+import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Animated } from 'react-native'
 import { X, CheckCircle2 } from 'lucide-react-native'
 import { useGameStore } from '../../store/useGameStore'
 import ClownfishSVG from '../fishes/Clownfish'
@@ -15,6 +15,17 @@ export default function RenameFishModal({ onClose }: { onClose: () => void }) {
   
   const [selectedFish, setSelectedFish] = useState<string | null>(null)
   const [newName, setNewName] = useState('')
+
+  // FIX: Add spring animation for consistent modal feel
+  const fadeAnim = useRef(new Animated.Value(0)).current
+  const scaleAnim = useRef(new Animated.Value(0.85)).current
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 100, friction: 10 }),
+    ]).start()
+  }, [])
 
   const handleConfirm = () => {
     if (!selectedFish || !newName.trim()) return;
@@ -34,9 +45,9 @@ export default function RenameFishModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <Modal transparent animationType="fade" statusBarTranslucent>
-      <View style={s.overlay}>
-        <View style={s.modal}>
+    <Modal transparent animationType="none" statusBarTranslucent>
+      <Animated.View style={[s.overlay, { opacity: fadeAnim }]}>
+        <Animated.View style={[s.modal, { transform: [{ scale: scaleAnim }] }]}>
           <TouchableOpacity style={s.closeBtn} onPress={onClose}>
             <X color="#fff" size={iconSize.lg} />
           </TouchableOpacity>
@@ -86,8 +97,8 @@ export default function RenameFishModal({ onClose }: { onClose: () => void }) {
               </TouchableOpacity>
             </View>
           )}
-        </View>
-      </View>
+        </Animated.View>
+      </Animated.View>
     </Modal>
   )
 }

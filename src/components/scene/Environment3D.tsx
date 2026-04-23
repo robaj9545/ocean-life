@@ -3,7 +3,7 @@
 
 import { Float, Outlines, RoundedBox, useTexture } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import React, { useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
 // Helper for quick outlines fitting the Ocean Life cartoon aesthetic
@@ -63,15 +63,8 @@ const TaperedTube = ({ radiusTop, radiusBottom, length, color, thickness=0.04, m
 
 // Match Image #5: Wavy, sculpted golden sand
 const WavySandFloor = ({ map }: any) => {
-  const sandRef = useRef<THREE.Group>(null);
-  useFrame((state) => {
-    if (sandRef.current) {
-      sandRef.current.position.y = -6.5; // Fixed base to allow deterministic collision physics
-    }
-  });
-
   return (
-    <group ref={sandRef} position={[0, -6.5, 0]}>
+    <group position={[0, -6.5, 0]}>
       {/* Base Platform */}
       <mesh position={[0, -0.5, 0]}>
         <boxGeometry args={[40, 2, 10]} />
@@ -79,38 +72,35 @@ const WavySandFloor = ({ map }: any) => {
         <Stroke thickness={0.03} color="#9c6114" />
       </mesh>
       
-      {/* Sculpted Sand Dunes - Slightly increased Y-Scale up to 0.35 */}
+      {/* Sculpted Sand Dunes — reduced segments for mobile perf */}
       <mesh position={[-6, 0.5, -2]} scale={[1, 0.35, 1]}>
-        <sphereGeometry args={[4, 32, 32]} />
+        <sphereGeometry args={[4, 16, 16]} />
         <EnvMaterial color="#FFC300" roughness={0.7} map={map} />
         <Stroke thickness={0.06} color="#b38400" />
       </mesh>
       <mesh position={[0, 0.2, -3]} scale={[1, 0.25, 1]}>
-        <sphereGeometry args={[6, 32, 32]} />
+        <sphereGeometry args={[6, 16, 16]} />
         <EnvMaterial color="#FFC300" roughness={0.7} map={map} />
         <Stroke thickness={0.06} color="#b38400" />
       </mesh>
       <mesh position={[6, 0.7, -2]} scale={[1, 0.35, 1]}>
-        <sphereGeometry args={[4, 32, 32]} />
+        <sphereGeometry args={[4, 16, 16]} />
         <EnvMaterial color="#FFC300" roughness={0.7} map={map} />
         <Stroke thickness={0.06} color="#b38400" />
       </mesh>
 
-      {/* Scattered White Pearls / Shells on Sand */}
+      {/* Scattered Pearls — removed outlines for perf (small objects) */}
       <mesh position={[-2, 0.2, 1]}>
-        <sphereGeometry args={[0.2, 16, 16]} />
+        <sphereGeometry args={[0.2, 8, 8]} />
         <EnvMaterial color="#FFF" roughness={0.1} />
-        <Stroke thickness={0.02} color="#000" />
       </mesh>
       <mesh position={[-1.6, 0.1, 1.2]}>
-        <sphereGeometry args={[0.15, 16, 16]} />
+        <sphereGeometry args={[0.15, 8, 8]} />
         <EnvMaterial color="#FFF" roughness={0.1} />
-        <Stroke thickness={0.02} color="#000" />
       </mesh>
       <mesh position={[3, 0.3, 0.5]}>
-        <sphereGeometry args={[0.2, 16, 16]} />
+        <sphereGeometry args={[0.2, 8, 8]} />
         <EnvMaterial color="#FFF" roughness={0.1} />
-        <Stroke thickness={0.02} color="#000" />
       </mesh>
     </group>
   );
@@ -119,7 +109,7 @@ const WavySandFloor = ({ map }: any) => {
 // Organic Wavy Coral Tentacle
 const WavyCoralTentacle = ({ radiusTop, radiusBottom, length, color, map, bendFrequency = 2, bendAmplitude = 0.2 }: any) => {
   const geo = useMemo(() => {
-    const g = new THREE.CylinderGeometry(radiusTop, radiusBottom, length, 16, 16);
+    const g = new THREE.CylinderGeometry(radiusTop, radiusBottom, length, 8, 8);
     g.translate(0, length / 2, 0); // Origin at bottom
     const pos = g.attributes.position;
     for(let i=0; i<pos.count; i++) {
@@ -134,6 +124,9 @@ const WavyCoralTentacle = ({ radiusTop, radiusBottom, length, color, map, bendFr
     return g;
   }, [radiusTop, radiusBottom, length, bendFrequency, bendAmplitude]);
 
+  // PERF FIX: Dispose geometry on unmount to prevent memory leaks
+  useEffect(() => () => { geo.dispose(); }, [geo]);
+
   return (
     <mesh geometry={geo}>
       <EnvMaterial color={color} roughness={0.6} map={map} />
@@ -145,7 +138,7 @@ const WavyCoralTentacle = ({ radiusTop, radiusBottom, length, color, map, bendFr
 // Match Image #2: Stunning Vibrant Glossy Corals
 const StylizedCoralCluster = ({ position, scale = [1,1,1], mirror = false, map }: any) => {
   const baseGeo = useMemo(() => {
-    const geo = new THREE.SphereGeometry(1.2, 32, 32);
+    const geo = new THREE.SphereGeometry(1.2, 16, 16);
     const pos = geo.attributes.position;
     for (let i = 0; i < pos.count; i++) {
       const y = pos.getY(i);
@@ -156,6 +149,9 @@ const StylizedCoralCluster = ({ position, scale = [1,1,1], mirror = false, map }
     geo.computeVertexNormals();
     return geo;
   }, []);
+
+  // PERF FIX: Dispose geometry on unmount
+  useEffect(() => () => { baseGeo.dispose(); }, [baseGeo]);
 
   return (
     <Float position={position} rotation={[0, mirror ? Math.PI : 0, 0]} speed={1.5} rotationIntensity={0.1} floatIntensity={0.2}>
@@ -182,7 +178,7 @@ const StylizedCoralCluster = ({ position, scale = [1,1,1], mirror = false, map }
 // Cartoon Polished Rocks - Organic Single Mesh
 const CartoonRocks = ({ position, map }: any) => {
   const rockGeo1 = useMemo(() => {
-    const geo = new THREE.SphereGeometry(1.2, 32, 32);
+    const geo = new THREE.SphereGeometry(1.2, 16, 16);
     const pos = geo.attributes.position;
     for (let i = 0; i < pos.count; i++) {
        const x = pos.getX(i);
@@ -197,7 +193,7 @@ const CartoonRocks = ({ position, map }: any) => {
   }, []);
 
   const rockGeo2 = useMemo(() => {
-    const geo = new THREE.SphereGeometry(0.9, 32, 32);
+    const geo = new THREE.SphereGeometry(0.9, 16, 16);
     const pos = geo.attributes.position;
     for (let i = 0; i < pos.count; i++) {
        const x = pos.getX(i);
@@ -210,6 +206,9 @@ const CartoonRocks = ({ position, map }: any) => {
     geo.computeVertexNormals();
     return geo;
   }, []);
+
+  // PERF FIX: Dispose geometries on unmount
+  useEffect(() => () => { rockGeo1.dispose(); rockGeo2.dispose(); }, [rockGeo1, rockGeo2]);
 
   return (
     <group position={position} scale={[0.7, 0.7, 0.7]}>
@@ -456,6 +455,9 @@ const SeaweedCluster = ({ position, color = '#1B5E20', count = 5, maxHeight = 3.
     });
   }, [count, maxHeight]);
 
+  // PERF FIX: Dispose all blade geometries on unmount
+  useEffect(() => () => { blades.forEach(b => b.geo.dispose()); }, [blades]);
+
   useFrame((state) => {
     if (!groupRef.current) return;
     const t = state.clock.elapsedTime;
@@ -494,7 +496,7 @@ const StylizedStarfish = ({ position, rotation = [0,0,0], scale = [1,1,1], map }
     }
     shape.closePath();
     
-    const extrudeSettings = { depth: 0.15, bevelEnabled: true, bevelSegments: 4, steps: 1, bevelSize: 0.1, bevelThickness: 0.1 };
+    const extrudeSettings = { depth: 0.15, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.1, bevelThickness: 0.1 };
     const geo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
     geo.center();
     
@@ -510,6 +512,9 @@ const StylizedStarfish = ({ position, rotation = [0,0,0], scale = [1,1,1], map }
     geo.computeVertexNormals();
     return geo;
   }, []);
+
+  // PERF FIX: Dispose geometry on unmount
+  useEffect(() => () => { starGeo.dispose(); }, [starGeo]);
 
   const ref = useRef<THREE.Group>(null);
   useFrame((state) => {
@@ -624,14 +629,15 @@ export default function Environment3D() {
 
   // Setup texture wrapping to allow repetition in large meshes
   useMemo(() => {
-    [texSand, texRock, texWood, texCoral, texShell, texCrab, texStarfish, texJellyfish].forEach(tex => {
+    const allTex = [texSand, texRock, texWood, texCoral, texShell, texCrab, texStarfish, texJellyfish] as THREE.Texture[];
+    allTex.forEach(tex => {
        if(tex) {
          tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
        }
     });
-    texSand.repeat.set(4, 4);   // scale sand texture smoothly over the big floor
-    texWood.repeat.set(1.5, 1);
-    texCoral.repeat.set(2, 2);
+    (texSand as THREE.Texture).repeat.set(4, 4);   // scale sand texture smoothly over the big floor
+    (texWood as THREE.Texture).repeat.set(1.5, 1);
+    (texCoral as THREE.Texture).repeat.set(2, 2);
   }, [texSand, texRock, texWood, texCoral]);
 
   return (

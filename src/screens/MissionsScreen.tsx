@@ -11,6 +11,7 @@ import { MissionCard } from '../components/screens/MissionsComponents'
 import { DAILY_MISSIONS, ACHIEVEMENTS } from '../data/missions'
 import { useGameStore } from '../store/useGameStore'
 import { scale, sidePanel, fonts, spacing, radius, iconSize } from '../utils/responsive'
+import { hapticSuccess } from '../utils/haptics'
 
 export default function MissionsScreen({ onClose }: { onClose?: () => void }) {
   const [activeTab, setActiveTab] = useState<'daily' | 'achievements'>('daily')
@@ -25,6 +26,7 @@ export default function MissionsScreen({ onClose }: { onClose?: () => void }) {
   }, [])
 
   const handleClaim = (id: string, coins: number, xp: number, isDaily: boolean) => {
+    hapticSuccess()
     claimMission(id, coins, xp, isDaily)
   }
 

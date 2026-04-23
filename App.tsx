@@ -16,6 +16,7 @@ import LoginScreen from './src/screens/LoginScreen'
 import { AlertProvider } from './src/components/ui/Alert'
 import { LoadingOverlay } from './src/components/ui/LoadingOverlay'
 import { scale, fonts, spacing, radius, iconSize } from './src/utils/responsive'
+import { preloadSounds, unloadSounds } from './src/utils/audio'
 
 export default function App() {
   const [session, setSession] = useState<any>(null)
@@ -139,6 +140,8 @@ export default function App() {
         }
       }
       setLoadingMsg('Preparando aquário...')
+      // Preload audio system in parallel with final UI prep
+      preloadSounds().catch(() => {})
       // Small delay for smooth transition
       setTimeout(() => setIsReady(true), 300);
     };
@@ -149,6 +152,7 @@ export default function App() {
     
     return () => {
       authListener.subscription.unsubscribe();
+      unloadSounds().catch(() => {});
     }
   }, [])
 

@@ -4,6 +4,7 @@ import { economyService } from '../services/economyService'
 import { fishService } from '../services/fishService'
 import { statsService, UserStats } from '../services/statsService'
 import { FishDNA } from '../utils/dna'
+import { hapticHeavy, hapticSuccess } from '../utils/haptics'
 
 export interface FishEntity {
   id: string;
@@ -157,12 +158,15 @@ export const useGameStore = create<GameState>()(
       set((state) => {
         let newXp = state.xp + amount;
         let newLevel = state.level;
+        const startLevel = state.level;
         let xpNeeded = newLevel * 1000;
         while (newXp >= xpNeeded) {
           newLevel += 1;
           newXp -= xpNeeded;
           xpNeeded = newLevel * 1000;
         }
+        // Haptic celebration on level up
+        if (newLevel > startLevel) hapticHeavy();
         return { xp: newXp, level: newLevel };
       });
       debouncedPush(get);

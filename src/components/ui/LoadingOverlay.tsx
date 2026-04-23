@@ -21,31 +21,42 @@ export function LoadingOverlay({ visible, message = 'Carregando...' }: LoadingOv
   const barAnim = useRef(new Animated.Value(0)).current
   const pulseAnim = useRef(new Animated.Value(1)).current
 
+  // PERF FIX: Store animation refs so we can stop them properly
+  const animsRef = useRef<Animated.CompositeAnimation[]>([]);
+
   useEffect(() => {
     if (visible) {
       Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }).start()
 
       // Spinner rotation
-      Animated.loop(
+      const spin = Animated.loop(
         Animated.timing(spinAnim, { toValue: 1, duration: 1200, useNativeDriver: true })
-      ).start()
+      );
+      spin.start();
 
       // Progress bar sweep
-      Animated.loop(
+      const bar = Animated.loop(
         Animated.sequence([
           Animated.timing(barAnim, { toValue: 1, duration: 1500, useNativeDriver: false }),
           Animated.timing(barAnim, { toValue: 0, duration: 0, useNativeDriver: false }),
         ])
-      ).start()
+      );
+      bar.start();
 
       // Pulse glow
-      Animated.loop(
+      const pulse = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, { toValue: 1.1, duration: 800, useNativeDriver: true }),
           Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
         ])
-      ).start()
+      );
+      pulse.start();
+
+      animsRef.current = [spin, bar, pulse];
     } else {
+      // FIX: Actually stop the loops instead of just resetting values
+      animsRef.current.forEach(a => a.stop());
+      animsRef.current = [];
       fadeAnim.setValue(0)
       spinAnim.setValue(0)
       barAnim.setValue(0)

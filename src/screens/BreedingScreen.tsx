@@ -17,6 +17,7 @@ import { useAlert } from '../components/ui/Alert'
 import { getSpeciesName } from '../data/species'
 import { scale, sidePanel, fonts, spacing, radius, iconSize } from '../utils/responsive'
 import { LoadingOverlay } from '../components/ui/LoadingOverlay'
+import { hapticHeavy, hapticSelection, hapticError } from '../utils/haptics'
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
@@ -37,8 +38,10 @@ export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
     if (breedingLocked) return
     const already = selected.find(f => f.id === fish.id)
     if (already) {
+      hapticSelection()
       setSelected(selected.filter(f => f.id !== fish.id))
     } else if (selected.length < 2) {
+      hapticSelection()
       setSelected([...selected, fish])
     } else {
       alert({ type: 'warning', title: 'Atenção', message: 'Selecione apenas 2 peixes!' })
@@ -59,6 +62,7 @@ export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
       if (data) {
         addFish(data)
         incrementStat('breed', 1)
+        hapticHeavy() // Celebrate breeding success!
         alert({
           type: 'success',
           title: 'Nascimento!',
@@ -66,6 +70,7 @@ export default function BreedingScreen({ onClose }: { onClose?: () => void }) {
         })
         setSelected([])
       } else {
+        hapticError()
         alert({ type: 'error', title: 'Erro', message: 'Não foi possível cruzar os peixes.' })
       }
     } catch (e: any) {

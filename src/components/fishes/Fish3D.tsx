@@ -1,7 +1,7 @@
 
 
 import { useFrame, useThree } from '@react-three/fiber';
-import React, { useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { FishEntity, useGameStore } from '../../store/useGameStore';
 import { getSandHeight } from '../scene/Environment3D';
@@ -53,7 +53,17 @@ export default function Fish3D({ fish, setSelectedFish, hungryRefs }: Fish3DProp
   const fin2Ref = useRef<THREE.Mesh>(null);
 
   const initialZ = useRef((Math.random() - 0.5) * 3);
-  const coinFrameCounter = useRef(0);
+
+  // PERF FIX: Pre-allocate reusable Vector3 to eliminate GC pressure in useFrame
+  const _avoidanceForce = useMemo(() => new THREE.Vector3(), []);
+  const _currentPos = useMemo(() => new THREE.Vector3(), []);
+  const _pushDir = useMemo(() => new THREE.Vector3(), []);
+  const _obsPos = useMemo(() => new THREE.Vector3(), []);
+
+  // PERF FIX: Subscribe reactively to fishCoins instead of calling getState() in useFrame
+  const fishCoins = useGameStore(s => s.fishCoins);
+  const fishCoinsRef = useRef(fishCoins);
+  useEffect(() => { fishCoinsRef.current = fishCoins; }, [fishCoins]);
 
   const visibleWidth = size.width / camera.zoom;
   const visibleHeight = size.height / camera.zoom;
@@ -93,7 +103,8 @@ export default function Fish3D({ fish, setSelectedFish, hungryRefs }: Fish3DProp
     const baseNavSpeed = fish.speed ? fish.speed * 0.6 : 0.3; 
     // Smooth pulsing logic representing fish swimming bursts
     const currentSpeed = (delta * baseNavSpeed) * (1 + Math.sin(time * 1.5 * speedScale.current) * 0.4);
-    const currentPos = groupRef.current.position.clone();
+    // PERF FIX: Reuse pre-allocated vector instead of clone()
+    _currentPos.copy(groupRef.current.position);
 
     // Bounds checking based on responsive camera size
     if (targetPos.x > boundX) targetPos.x = boundX;
@@ -106,39 +117,40 @@ export default function Fish3D({ fish, setSelectedFish, hungryRefs }: Fish3DProp
     groupRef.current.position.y += Math.sin(time * 1.2 + speedScale.current * 10) * (delta * 0.08);
 
     // --- ROBUST PHYSICS ENGINE (Collision Avoidance) ---
-    const avoidanceForce = new THREE.Vector3();
+    // PERF FIX: Reuse pre-allocated vector
+    _avoidanceForce.set(0, 0, 0);
     
     // 1. Solid Static Objects Avoidance (Rocks, Corals, Chest)
     SCENERY_OBSTACLES.forEach(obs => {
-        const obsPos = new THREE.Vector3(obs.x, obs.y, obs.z);
-        const dist = currentPos.distanceTo(obsPos);
+        _obsPos.set(obs.x, obs.y, obs.z);
+        const dist = _currentPos.distanceTo(_obsPos);
         const minAllowedDist = obs.r + (baseScale * 1.2); 
         
         if (dist < minAllowedDist) {
             // Apply a soft push-back force relative to penetration depth
-            const pushDir = currentPos.clone().sub(obsPos).normalize();
+            _pushDir.copy(_currentPos).sub(_obsPos).normalize();
             const pushIntensity = (minAllowedDist - dist) * 0.2;
-            avoidanceForce.add(pushDir.multiplyScalar(pushIntensity));
+            _avoidanceForce.addScaledVector(_pushDir, pushIntensity);
             
             // Deflect path logic so fish swims AROUND it
-            targetPos.add(pushDir.multiplyScalar(1.0));
+            targetPos.addScaledVector(_pushDir, 1.0);
         }
     });
 
     // 2. Continuous Ground Collision (Wavy Sand Floor)
     // Add 2.0 because the Environment3D parent group mounts at Y=2.0
-    const absoluteGroundY = getSandHeight(currentPos.x, currentPos.z) + 2.0;
+    const absoluteGroundY = getSandHeight(_currentPos.x, _currentPos.z) + 2.0;
     const bottomPadding = baseScale * 1.2; 
     
-    if (currentPos.y < absoluteGroundY + bottomPadding) {
+    if (_currentPos.y < absoluteGroundY + bottomPadding) {
        // Snap and push upwards smoothly to prevent burying
-       avoidanceForce.y += (absoluteGroundY + bottomPadding - currentPos.y) * 0.3;
+       _avoidanceForce.y += (absoluteGroundY + bottomPadding - _currentPos.y) * 0.3;
        // Reroute target upwards to simulate skimming the sand
        targetPos.y += 0.5;
     }
 
     // Apply the resultant repulsion forces dynamically
-    groupRef.current.position.add(avoidanceForce);
+    groupRef.current.position.add(_avoidanceForce);
     // ----------------------------------------------------
 
     // 2D Projection for hunger + coin icon overlay
@@ -149,15 +161,10 @@ export default function Fish3D({ fish, setSelectedFish, hungryRefs }: Fish3DProp
       const x = (vec.x * 0.5 + 0.5) * size.width;
       const y = -(vec.y * 0.5 - 0.5) * size.height;
 
-      // PERF: Only check fishCoins store every 30 frames (~2x/sec) instead of every frame
-      coinFrameCounter.current++;
-      let hasCoin = hungryRefs.current[fish.id]?.hasCoin ?? false;
-      let coinValue = hungryRefs.current[fish.id]?.coinValue ?? 0;
-      if (coinFrameCounter.current % 30 === 0) {
-        const fishCoins = useGameStore.getState().fishCoins;
-        hasCoin = !!fishCoins[fish.id];
-        coinValue = fishCoins[fish.id] || 0;
-      }
+      // PERF FIX: Use reactive subscription ref instead of getState()
+      const currentFishCoins = fishCoinsRef.current;
+      const hasCoin = !!currentFishCoins[fish.id];
+      const coinValue = currentFishCoins[fish.id] || 0;
 
       const isHungry = fish.hunger < 30;
 
@@ -173,7 +180,7 @@ export default function Fish3D({ fish, setSelectedFish, hungryRefs }: Fish3DProp
 
     // Strict 2.5D Sideways swimming ("só podem nadas de lado")
     // Face right (0 deg) if target is to the right. Face left (180 deg) if target is to the left.
-    const isMovingRight = targetPos.x > currentPos.x;
+    const isMovingRight = targetPos.x > _currentPos.x;
     const targetYRot = isMovingRight ? 0 : Math.PI;
 
     // Smoothly interpolate exactly on the Y axis
@@ -193,7 +200,7 @@ export default function Fish3D({ fish, setSelectedFish, hungryRefs }: Fish3DProp
     if (fin2Ref.current) fin2Ref.current.rotation.x = -Math.sin(time * (animSpeed * 0.8) * speedScale.current) * 0.25;
 
     // Changing target when getting close — mutate ref instead of setState
-    if (currentPos.distanceTo(targetPos) < 1.2) {
+    if (_currentPos.distanceTo(targetPos) < 1.2) {
       const newTarget = randomTarget();
       targetPosRef.current.copy(newTarget);
       // Rerandomize their behavior rhythm slightly
