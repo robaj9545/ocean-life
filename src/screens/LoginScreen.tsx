@@ -6,7 +6,6 @@ import {
   Animated,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -16,7 +15,7 @@ import {
 } from 'react-native'
 import { useAlert } from '../components/ui/Alert'
 import { supabase } from '../services/supabase'
-import { fonts, iconSize, radius, scale, spacing } from '../utils/responsive'
+import { hapticLight } from '../utils/haptics'
 
 // ─── Ambient Bubble ───────────────────────────────────────────────────────────
 function AmbientBubble({ size, xPct, delay, screenHeight }: { size: number; xPct: number; delay: number; screenHeight: number }) {
@@ -24,7 +23,7 @@ function AmbientBubble({ size, xPct, delay, screenHeight }: { size: number; xPct
   const opacAnim = useRef(new Animated.Value(0)).current
 
   useEffect(() => {
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       Animated.loop(
         Animated.parallel([
           Animated.sequence([
@@ -38,21 +37,21 @@ function AmbientBubble({ size, xPct, delay, screenHeight }: { size: number; xPct
       floatAnim.setValue(0)
       opacAnim.setValue(0)
     }, delay)
+    return () => clearTimeout(timer)
   }, [])
 
   const translateY = floatAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -screenHeight * 1.1] })
-  const scaledSize = scale(size)
 
   return (
     <Animated.View
       style={[
         ab.bubble,
         {
-          width: scaledSize,
-          height: scaledSize,
-          borderRadius: scaledSize / 2,
+          width: size,
+          height: size,
+          borderRadius: size / 2,
           left: `${xPct}%` as any,
-          bottom: -scaledSize,
+          bottom: -size,
           opacity: opacAnim,
           transform: [{ translateY }],
         },
@@ -78,6 +77,7 @@ function InputField({
   onChangeText,
   secureTextEntry,
   keyboardType,
+  compact,
 }: {
   icon: React.ReactNode
   placeholder: string
@@ -85,6 +85,7 @@ function InputField({
   onChangeText: (t: string) => void
   secureTextEntry?: boolean
   keyboardType?: any
+  compact?: boolean
 }) {
   const [focused, setFocused] = useState(false)
   const borderAnim = useRef(new Animated.Value(0)).current
@@ -108,11 +109,13 @@ function InputField({
     outputRange: ['rgba(0,0,0,0.35)', 'rgba(0,229,255,0.08)'],
   })
 
+  const h = compact ? 36 : 44
+
   return (
-    <Animated.View style={[inf.wrap, { borderColor, backgroundColor: bgColor }]}>
+    <Animated.View style={[inf.wrap, { borderColor, backgroundColor: bgColor, height: h, marginBottom: compact ? 8 : 12 }]}>
       <View style={[inf.iconWrap, focused && inf.iconFocused]}>{icon}</View>
       <TextInput
-        style={inf.input}
+        style={[inf.input, { fontSize: compact ? 13 : 15 }]}
         placeholder={placeholder}
         placeholderTextColor="rgba(255,255,255,0.3)"
         autoCapitalize="none"
@@ -131,32 +134,29 @@ const inf = StyleSheet.create({
   wrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: scale(48),
-    borderRadius: radius.md,
+    borderRadius: 10,
     borderWidth: 1.5,
-    paddingHorizontal: spacing.md,
-    gap: spacing.sm,
-    marginBottom: spacing.md,
+    paddingHorizontal: 12,
+    gap: 8,
   },
   iconWrap: { opacity: 0.5 },
   iconFocused: { opacity: 1 },
   input: {
     flex: 1,
     color: '#fff',
-    fontSize: fonts.lg,
     fontWeight: '600',
   },
 })
 
 // ─── Bubble Config ────────────────────────────────────────────────────────────
 const BUBBLES = [
-  { size: 12, xPct: 10, delay: 0 },
-  { size: 22, xPct: 25, delay: 1200 },
-  { size: 8, xPct: 40, delay: 700 },
-  { size: 18, xPct: 55, delay: 2000 },
-  { size: 14, xPct: 70, delay: 400 },
-  { size: 28, xPct: 82, delay: 1600 },
-  { size: 10, xPct: 92, delay: 900 },
+  { size: 10, xPct: 10, delay: 0 },
+  { size: 18, xPct: 25, delay: 1200 },
+  { size: 7, xPct: 40, delay: 700 },
+  { size: 14, xPct: 55, delay: 2000 },
+  { size: 11, xPct: 70, delay: 400 },
+  { size: 22, xPct: 82, delay: 1600 },
+  { size: 8, xPct: 92, delay: 900 },
 ]
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -182,6 +182,7 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     if (!email || !password) return alert({ type: 'warning', title: 'Atenção', message: 'Preencha todos os campos!' })
     setLoading(true)
+    hapticLight()
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) alert({ type: 'error', title: 'Erro no Login', message: error.message })
     setLoading(false)
@@ -190,11 +191,20 @@ export default function LoginScreen() {
   const handleSignUp = async () => {
     if (!email || !password) return alert({ type: 'warning', title: 'Atenção', message: 'Preencha todos os campos!' })
     setLoading(true)
+    hapticLight()
     const { error } = await supabase.auth.signUp({ email, password })
     if (error) alert({ type: 'error', title: 'Erro no Cadastro', message: error.message })
     else alert({ type: 'success', title: 'Conta criada!', message: 'Bem-vindo ao Ocean Life!' })
     setLoading(false)
   }
+
+  // Landscape layout: logo LEFT, form RIGHT
+  // Compact sizing to fit everything without scrolling
+  const isLandscape = width > height
+  const logoSize = Math.min(height * 0.18, 56)
+  const titleSize = Math.min(height * 0.08, 26)
+  const taglineSize = Math.min(height * 0.04, 12)
+  const cardMaxWidth = isLandscape ? Math.min(width * 0.42, 380) : Math.min(width * 0.9, 400)
 
   return (
     <View style={s.container}>
@@ -221,105 +231,111 @@ export default function LoginScreen() {
         style={s.kav}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView contentContainerStyle={s.scrollContent} style={s.scroll} showsVerticalScrollIndicator={false}>
-          {/* Logo / Hero */}
-        <Animated.View
-          style={[
-            s.logoSection,
-            {
-              opacity: logoAnim,
-              transform: [{ translateY: logoAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }],
-            },
-          ]}
-        >
-          <View style={s.logoIconWrap}>
-            <LinearGradient colors={['#00E5FF', '#0090FF']} style={s.logoGrad}>
-              <Waves color="#fff" size={iconSize.xl} strokeWidth={2} />
-            </LinearGradient>
-          </View>
-          <Text style={s.gameTitle}>Ocean Life</Text>
-          <Text style={s.gameTagline}>Seu paraíso aquático te espera</Text>
-        </Animated.View>
-
-        {/* Card */}
-        <Animated.View
-          style={[
-            s.card,
-            {
-              opacity: cardAnim,
-              transform: [{ translateY: cardAnim.interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
-            },
-          ]}
-        >
-          {/* Mode toggle */}
-          <View style={s.modeToggle}>
-            <TouchableOpacity
-              style={[s.modeBtn, mode === 'login' && s.modeBtnActive]}
-              onPress={() => setMode('login')}
-            >
-              <Text style={[s.modeBtnText, mode === 'login' && s.modeBtnTextActive]}>Entrar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[s.modeBtn, mode === 'signup' && s.modeBtnActive]}
-              onPress={() => setMode('signup')}
-            >
-              <Text style={[s.modeBtnText, mode === 'signup' && s.modeBtnTextActive]}>Criar Conta</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Inputs */}
-          <InputField
-            icon={<Mail color="#00E5FF" size={iconSize.md} strokeWidth={2} />}
-            placeholder="E-mail"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-          />
-          <InputField
-            icon={<Lock color="#00E5FF" size={iconSize.md} strokeWidth={2} />}
-            placeholder="Senha"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-
-          {/* Submit */}
-          {loading ? (
-            <View style={s.loadingWrap}>
-              <ActivityIndicator color="#00E5FF" size="large" />
-              <Text style={s.loadingText}>Mergulhando...</Text>
-            </View>
-          ) : (
-            <TouchableOpacity
-              style={s.submitBtn}
-              onPress={mode === 'login' ? handleLogin : handleSignUp}
-              activeOpacity={0.85}
-            >
-              <LinearGradient
-                colors={mode === 'login' ? ['#00E5FF', '#0090FF'] : ['#00E5A0', '#00A86B']}
-                style={s.submitGrad}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                  {mode === 'login'
-                    ? <Waves color="#fff" size={iconSize.md} strokeWidth={2} />
-                    : <Fish color="#fff" size={iconSize.md} strokeWidth={2} />
-                  }
-                  <Text style={s.submitText}>
-                    {mode === 'login' ? 'Mergulhar' : 'Criar Conta'}
-                  </Text>
-                </View>
+        <View style={[s.landscapeRow, !isLandscape && s.portraitColumn]}>
+          {/* Logo / Hero — left side in landscape */}
+          <Animated.View
+            style={[
+              s.logoSection,
+              isLandscape && { flex: 1, justifyContent: 'center' },
+              {
+                opacity: logoAnim,
+                transform: [{ translateY: logoAnim.interpolate({ inputRange: [0, 1], outputRange: [-15, 0] }) }],
+              },
+            ]}
+          >
+            <View style={[s.logoIconWrap, { width: logoSize, height: logoSize, borderRadius: logoSize * 0.3 }]}>
+              <LinearGradient colors={['#00E5FF', '#0090FF']} style={s.logoGrad}>
+                <Waves color="#fff" size={logoSize * 0.5} strokeWidth={2} />
               </LinearGradient>
-            </TouchableOpacity>
-          )}
-        </Animated.View>
+            </View>
+            <Text style={[s.gameTitle, { fontSize: titleSize }]}>Ocean Life</Text>
+            <Text style={[s.gameTagline, { fontSize: taglineSize }]}>Seu paraíso aquático te espera</Text>
+          </Animated.View>
 
-        <View style={s.footerRow}>
-          <Shield color="rgba(255,255,255,0.25)" size={iconSize.xs} strokeWidth={2} />
-          <Text style={s.footer}>Seus dados estão seguros e criptografados</Text>
+          {/* Card — right side in landscape */}
+          <Animated.View
+            style={[
+              s.card,
+              { maxWidth: cardMaxWidth },
+              isLandscape && { flex: 1.2 },
+              {
+                opacity: cardAnim,
+                transform: [{ translateY: cardAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }],
+              },
+            ]}
+          >
+            {/* Mode toggle */}
+            <View style={s.modeToggle}>
+              <TouchableOpacity
+                style={[s.modeBtn, mode === 'login' && s.modeBtnActive]}
+                onPress={() => setMode('login')}
+              >
+                <Text style={[s.modeBtnText, mode === 'login' && s.modeBtnTextActive]}>Entrar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.modeBtn, mode === 'signup' && s.modeBtnActive]}
+                onPress={() => setMode('signup')}
+              >
+                <Text style={[s.modeBtnText, mode === 'signup' && s.modeBtnTextActive]}>Criar Conta</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Inputs */}
+            <InputField
+              icon={<Mail color="#00E5FF" size={16} strokeWidth={2} />}
+              placeholder="E-mail"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              compact
+            />
+            <InputField
+              icon={<Lock color="#00E5FF" size={16} strokeWidth={2} />}
+              placeholder="Senha"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              compact
+            />
+
+            {/* Submit */}
+            {loading ? (
+              <View style={s.loadingWrap}>
+                <ActivityIndicator color="#00E5FF" size="small" />
+                <Text style={s.loadingText}>Mergulhando...</Text>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={s.submitBtn}
+                onPress={mode === 'login' ? handleLogin : handleSignUp}
+                activeOpacity={0.85}
+              >
+                <LinearGradient
+                  colors={mode === 'login' ? ['#00E5FF', '#0090FF'] : ['#00E5A0', '#00A86B']}
+                  style={s.submitGrad}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    {mode === 'login'
+                      ? <Waves color="#fff" size={16} strokeWidth={2} />
+                      : <Fish color="#fff" size={16} strokeWidth={2} />
+                    }
+                    <Text style={s.submitText}>
+                      {mode === 'login' ? 'Mergulhar' : 'Criar Conta'}
+                    </Text>
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
+
+            {/* Footer inside card */}
+            <View style={s.footerRow}>
+              <Shield color="rgba(255,255,255,0.25)" size={10} strokeWidth={2} />
+              <Text style={s.footer}>Dados seguros e criptografados</Text>
+            </View>
+          </Animated.View>
         </View>
-        </ScrollView>
       </KeyboardAvoidingView>
     </View>
   )
@@ -328,17 +344,28 @@ export default function LoginScreen() {
 const s = StyleSheet.create({
   container: { flex: 1 },
   kav: { flex: 1 },
-  scroll: { flex: 1, width: '100%' },
-  scrollContent: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: spacing.xxxl, paddingHorizontal: spacing.xxl },
+
+  // Landscape: horizontal row layout
+  landscapeRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 30,
+    gap: 24,
+  },
+  // Portrait fallback: vertical column
+  portraitColumn: {
+    flexDirection: 'column',
+    paddingHorizontal: 24,
+    gap: 16,
+  },
 
   // Logo
-  logoSection: { alignItems: 'center', marginBottom: spacing.xxl, gap: spacing.sm },
+  logoSection: { alignItems: 'center', gap: 6 },
   logoIconWrap: {
-    width: scale(72),
-    height: scale(72),
-    borderRadius: radius.xxl,
     overflow: 'hidden',
-    marginBottom: spacing.xs,
+    marginBottom: 4,
     ...Platform.select({
       ios: { shadowColor: '#00E5FF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.7, shadowRadius: 16 },
       android: { elevation: 10 },
@@ -346,7 +373,6 @@ const s = StyleSheet.create({
   },
   logoGrad: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   gameTitle: {
-    fontSize: fonts.hero,
     fontWeight: '900',
     color: '#fff',
     letterSpacing: 0.5,
@@ -355,7 +381,6 @@ const s = StyleSheet.create({
     textShadowRadius: 10,
   },
   gameTagline: {
-    fontSize: fonts.base,
     color: 'rgba(255,255,255,0.5)',
     fontWeight: '600',
     letterSpacing: 0.3,
@@ -365,8 +390,8 @@ const s = StyleSheet.create({
   card: {
     width: '100%',
     backgroundColor: 'rgba(8,20,45,0.9)',
-    borderRadius: radius.xxl,
-    padding: spacing.xl,
+    borderRadius: 16,
+    padding: 16,
     borderWidth: 1,
     borderColor: 'rgba(0,229,255,0.15)',
     ...Platform.select({
@@ -379,29 +404,29 @@ const s = StyleSheet.create({
   modeToggle: {
     flexDirection: 'row',
     backgroundColor: 'rgba(0,0,0,0.4)',
-    borderRadius: radius.md,
-    padding: spacing.xxs,
-    marginBottom: spacing.xl,
+    borderRadius: 10,
+    padding: 2,
+    marginBottom: 12,
   },
-  modeBtn: { flex: 1, paddingVertical: spacing.sm, borderRadius: radius.md - 2, alignItems: 'center' },
+  modeBtn: { flex: 1, paddingVertical: 7, borderRadius: 8, alignItems: 'center' },
   modeBtnActive: { backgroundColor: 'rgba(0,229,255,0.15)', borderWidth: 1, borderColor: 'rgba(0,229,255,0.3)' },
-  modeBtnText: { fontSize: fonts.base, fontWeight: '800', color: 'rgba(255,255,255,0.35)', letterSpacing: 0.3 },
+  modeBtnText: { fontSize: 12, fontWeight: '800', color: 'rgba(255,255,255,0.35)', letterSpacing: 0.3 },
   modeBtnTextActive: { color: '#00E5FF' },
 
   // Submit
-  submitBtn: { borderRadius: radius.md, overflow: 'hidden', marginTop: spacing.xs },
-  submitGrad: { paddingVertical: spacing.lg, alignItems: 'center', justifyContent: 'center' },
-  submitText: { color: '#fff', fontSize: fonts.lg, fontWeight: '900', letterSpacing: 0.5 },
+  submitBtn: { borderRadius: 10, overflow: 'hidden', marginTop: 4 },
+  submitGrad: { paddingVertical: 10, alignItems: 'center', justifyContent: 'center' },
+  submitText: { color: '#fff', fontSize: 14, fontWeight: '900', letterSpacing: 0.5 },
 
   // Loading
-  loadingWrap: { alignItems: 'center', paddingVertical: spacing.xl, gap: spacing.sm },
-  loadingText: { color: 'rgba(255,255,255,0.5)', fontSize: fonts.base, fontWeight: '700' },
+  loadingWrap: { alignItems: 'center', paddingVertical: 12, gap: 6 },
+  loadingText: { color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: '700' },
 
   // Footer
-  footerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.xl },
+  footerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 10 },
   footer: {
     color: 'rgba(255,255,255,0.25)',
-    fontSize: fonts.md,
+    fontSize: 10,
     fontWeight: '600',
     letterSpacing: 0.3,
   },
