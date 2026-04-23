@@ -2,17 +2,17 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { Fish, Lock, Mail, Shield, Waves } from 'lucide-react-native'
 import React, { useEffect, useRef, useState } from 'react'
 import {
-    ActivityIndicator,
-    Animated,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    useWindowDimensions,
-    View,
+  ActivityIndicator,
+  Animated,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
 } from 'react-native'
 import { useAlert } from '../components/ui/Alert'
 import { supabase } from '../services/supabase'
