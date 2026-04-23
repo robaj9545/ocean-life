@@ -1,54 +1,39 @@
 /**
  * Centralized audio system for Ocean Life.
- * Uses expo-av for sound playback with placeholder generated tones.
- * All sounds are procedurally generated — no external audio files needed.
+ * Uses expo-audio (replaces deprecated expo-av).
+ * All sounds are lazy-loaded and cached.
  */
-import { Audio } from 'expo-av'
+import { createAudioPlayer, AudioPlayer } from 'expo-audio'
 import { Platform } from 'react-native'
 
-// Audio configuration
-let audioInitialized = false
-
-const initAudio = async () => {
-  if (audioInitialized) return
-  try {
-    await Audio.setAudioModeAsync({
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: false,
-      shouldDuckAndroid: true,
-    })
-    audioInitialized = true
-  } catch (e) {
-    console.warn('[Ocean Life Audio] Failed to init:', e)
-  }
-}
-
-// Sound cache to avoid reloading
-const soundCache: Record<string, Audio.Sound> = {}
+// Sound cache to avoid recreating players
+const soundCache: Record<string, AudioPlayer> = {}
 
 /**
- * Play a sound effect. Sounds are cached after first load.
- * Uses a simple approach: load from URI or require().
- * For placeholder, we use the system's built-in sounds when available.
+ * Play a sound effect. Players are cached after first creation.
+ * When real audio assets are added, replace the require() paths below.
  */
 const playSound = async (key: string, volume: number = 0.5) => {
   if (Platform.OS === 'web') return // No audio on web preview
   
   try {
-    await initAudio()
-    
-    // If we have a cached sound, replay it
+    // If we have a cached player, replay it
     if (soundCache[key]) {
       try {
-        await soundCache[key].setPositionAsync(0)
-        await soundCache[key].setVolumeAsync(volume)
-        await soundCache[key].playAsync()
+        soundCache[key].seekTo(0)
+        soundCache[key].volume = volume
+        soundCache[key].play()
         return
       } catch {
-        // Sound might be unloaded, recreate it
+        // Player might be released, recreate it
         delete soundCache[key]
       }
     }
+    // When real audio files are added:
+    // const player = createAudioPlayer(require('../assets/sounds/coin.mp3'))
+    // soundCache[key] = player
+    // player.volume = volume
+    // player.play()
   } catch (e) {
     // Silently fail — audio should never crash the game
   }
@@ -85,11 +70,9 @@ export const playErrorSound = () => playSound('error', 0.3)
  * Call this once during app initialization.
  */
 export const preloadSounds = async () => {
-  await initAudio()
-  // Sounds will be lazy-loaded on first play
+  // Sounds will be lazy-loaded on first play.
   // When real audio assets are added, preload them here:
-  // const { sound } = await Audio.Sound.createAsync(require('../assets/sounds/coin.mp3'))
-  // soundCache['coin'] = sound
+  // soundCache['coin'] = createAudioPlayer(require('../assets/sounds/coin.mp3'))
 }
 
 /**
@@ -99,7 +82,7 @@ export const preloadSounds = async () => {
 export const unloadSounds = async () => {
   for (const key of Object.keys(soundCache)) {
     try {
-      await soundCache[key].unloadAsync()
+      soundCache[key].release()
     } catch {}
   }
 }

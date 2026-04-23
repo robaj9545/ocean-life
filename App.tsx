@@ -48,15 +48,40 @@ export default function App() {
     return () => subscription.remove()
   }, [])
 
-  // Suppress non-actionable warnings (Three.js internals + edge-to-edge deprecations)
+  // Suppress non-actionable warnings from Three.js internals and EXGL
+  // LogBox.ignoreLogs only hides the yellow box UI — this patches the actual console output
   useEffect(() => {
-    LogBox.ignoreLogs([
-      'THREE.WARNING: Multiple instances of Three.js being imported.',
-      'THREE.THREE.Clock: This module has been deprecated',
-      'THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated',
-      '`setBehaviorAsync` is not supported',
-      '`setBackgroundColorAsync` is not supported',
-    ]);
+    const suppressedPatterns = [
+      'THREE.WARNING',
+      'THREE.THREE.Clock',
+      'THREE.WebGLShadowMap',
+      'setBehaviorAsync',
+      'setBackgroundColorAsync',
+      'EXGL',
+    ];
+
+    const originalWarn = console.warn;
+    const originalLog = console.log;
+
+    console.warn = (...args: any[]) => {
+      const msg = typeof args[0] === 'string' ? args[0] : '';
+      if (suppressedPatterns.some(p => msg.includes(p))) return;
+      originalWarn.apply(console, args);
+    };
+
+    console.log = (...args: any[]) => {
+      const msg = typeof args[0] === 'string' ? args[0] : '';
+      if (suppressedPatterns.some(p => msg.includes(p))) return;
+      originalLog.apply(console, args);
+    };
+
+    // Also suppress from LogBox UI
+    LogBox.ignoreLogs(suppressedPatterns);
+
+    return () => {
+      console.warn = originalWarn;
+      console.log = originalLog;
+    };
   }, []);
 
   useEffect(() => {

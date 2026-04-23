@@ -42,7 +42,7 @@ export default function AquariumScene3D({ setSelectedFish, hungryRefs }: Aquariu
   const fishes = useGameStore(state => state.fishes);
 
   return (
-    <Canvas shadows dpr={[1, 2]}>
+    <Canvas shadows={{ type: THREE.BasicShadowMap }} dpr={[1, 2]}>
       <OrthographicCamera makeDefault position={[0, 0, 10]} zoom={55} />
       <ResponsiveCamera />
       
