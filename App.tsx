@@ -48,48 +48,23 @@ export default function App() {
     return () => subscription.remove()
   }, [])
 
-  // Suppress non-actionable warnings from Three.js internals and EXGL
-  // LogBox.ignoreLogs only hides the yellow box UI — this patches the actual console output
+  // LogBox UI suppression (yellow box)
   useEffect(() => {
-    const suppressedPatterns = [
+    LogBox.ignoreLogs([
       'THREE.WARNING',
       'THREE.THREE.Clock',
       'THREE.WebGLShadowMap',
       'setBehaviorAsync',
       'setBackgroundColorAsync',
       'EXGL',
-    ];
-
-    const originalWarn = console.warn;
-    const originalLog = console.log;
-
-    console.warn = (...args: any[]) => {
-      const msg = typeof args[0] === 'string' ? args[0] : '';
-      if (suppressedPatterns.some(p => msg.includes(p))) return;
-      originalWarn.apply(console, args);
-    };
-
-    console.log = (...args: any[]) => {
-      const msg = typeof args[0] === 'string' ? args[0] : '';
-      if (suppressedPatterns.some(p => msg.includes(p))) return;
-      originalLog.apply(console, args);
-    };
-
-    // Also suppress from LogBox UI
-    LogBox.ignoreLogs(suppressedPatterns);
-
-    return () => {
-      console.warn = originalWarn;
-      console.log = originalLog;
-    };
+    ]);
   }, []);
 
   useEffect(() => {
     let isLoading = false; // Prevent duplicate parallel loadData calls
 
     const loadData = async (session: any) => {
-      // BUG FIX: Prevent race condition where getSession() and onAuthStateChange
-      // both call loadData simultaneously, causing double-load or stuck loading screen
+      // Prevent concurrent loadData calls (race condition on first launch)
       if (isLoading) return;
       isLoading = true;
 
@@ -175,11 +150,10 @@ export default function App() {
       } catch (e) {
         console.error('[Ocean Life] Error loading game data:', e);
       } finally {
-        // BUG FIX: ALWAYS transition to ready state, even if loading fails
+        // ALWAYS transition to ready state, even if loading fails
+        isLoading = false; // Allow future auth changes to trigger loadData
         setLoadingMsg('Preparando aquário...')
-        // Preload audio system in parallel with final UI prep
         preloadSounds().catch(() => {})
-        // Small delay for smooth transition
         setTimeout(() => setIsReady(true), 300);
       }
     };
@@ -187,8 +161,12 @@ export default function App() {
     supabase.auth.getSession().then(({ data: { session } }) => loadData(session));
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      // Only process if not already loading — prevents double-call race condition
-      if (!isLoading) loadData(session);
+      // Always update session state immediately for screen transitions (login/logout)
+      setSession(session);
+      // Load game data if logging in (and not already loading)
+      if (session?.user && !isLoading) {
+        loadData(session);
+      }
     });
     
     return () => {
