@@ -60,95 +60,111 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    let isLoading = false; // Prevent duplicate parallel loadData calls
+
     const loadData = async (session: any) => {
-      setSession(session);
-      if (session?.user) {
-        setLoadingMsg('Carregando dados do jogador...')
-        const [economy, fishesObj, deadFishesObj, statsObj] = await Promise.all([
-          economyService.loadEconomy(),
-          fishService.loadFishes(),
-          fishService.loadDeadFishes(),
-          statsService.loadStats()
-        ]);
-        
-        setLoadingMsg('Carregando peixes...')
-        
-        if (economy.data) {
-          // Load lastSaved from AsyncStorage
-          const lastSavedStr = await AsyncStorage.getItem('@last_saved_time');
-          const localLastSaved = lastSavedStr ? parseInt(lastSavedStr) : Date.now();
-          
-          const loadedFishes = fishesObj.data || [];
-          
-          // BUG #5 FIX: Full offline progress calculation including hunger, death, growth
-          const offlineResult = calculateOfflineProgress(localLastSaved, loadedFishes);
-          
-          // Apply offline updates to fishes
-          const survivingFishes = offlineResult.updatedFishes.filter(
-            f => !offlineResult.deaths.includes(f.id)
-          );
-          
-          // Build dead fish list from offline deaths
-          const newDeadFishes = offlineResult.updatedFishes
-            .filter(f => offlineResult.deaths.includes(f.id))
-            .map(f => ({ ...f, deathTime: Date.now() }));
+      // BUG FIX: Prevent race condition where getSession() and onAuthStateChange
+      // both call loadData simultaneously, causing double-load or stuck loading screen
+      if (isLoading) return;
+      isLoading = true;
 
-          const allDeadFishes = [...(deadFishesObj.data || []), ...newDeadFishes];
-
-          // Count fish that grew to adult during offline
-          const grownCount = loadedFishes.filter(
-            (f, i) => f.stage === 'baby' && offlineResult.updatedFishes[i]?.stage === 'adult'
-          ).length;
-
-          useGameStore.setState({ 
-            coins: (economy.data.coins !== null ? economy.data.coins : 500) + Math.floor(offlineResult.coins), 
-            foodAmount: economy.data.foodAmount !== null ? economy.data.foodAmount : 50,
-            level: economy.data.level || 1,
-            xp: economy.data.xp || 0,
-            fishes: survivingFishes,
-            deadFishes: allDeadFishes,
-            lastSaved: localLastSaved
-          });
+      try {
+        setSession(session);
+        if (session?.user) {
+          setLoadingMsg('Carregando dados do jogador...')
+          const [economy, fishesObj, deadFishesObj, statsObj] = await Promise.all([
+            economyService.loadEconomy(),
+            fishService.loadFishes(),
+            fishService.loadDeadFishes(),
+            statsService.loadStats()
+          ]);
           
-          if (statsObj.data) {
-             useGameStore.getState().setStatsData({
-               stats: statsObj.data.stats,
-               claimedMissions: statsObj.data.claimedMissions,
-               dailyProgress: statsObj.data.dailyProgress,
-               lastDailyReset: statsObj.data.lastDailyReset || Date.now()
-             });
-             useGameStore.getState().checkDailyReset();
-          }
-          // Remove dead fishes older than 30 days
-          useGameStore.getState().cleanupDeadFishes();
+          setLoadingMsg('Carregando peixes...')
           
-          // Show offline summary if player was away for > 5 minutes
-          const offlineMinutes = (Date.now() - localLastSaved) / (1000 * 60);
-          if (offlineMinutes > 5 && (offlineResult.coins > 1 || offlineResult.deaths.length > 0 || grownCount > 0)) {
-            setOfflineSummary({
-              coins: Math.floor(offlineResult.coins),
-              deaths: offlineResult.deaths.length,
-              grown: grownCount,
+          if (economy.data) {
+            // Load lastSaved from AsyncStorage
+            const lastSavedStr = await AsyncStorage.getItem('@last_saved_time');
+            const localLastSaved = lastSavedStr ? parseInt(lastSavedStr) : Date.now();
+            
+            const loadedFishes = fishesObj.data || [];
+            
+            // BUG #5 FIX: Full offline progress calculation including hunger, death, growth
+            const offlineResult = calculateOfflineProgress(localLastSaved, loadedFishes);
+            
+            // Apply offline updates to fishes
+            const survivingFishes = offlineResult.updatedFishes.filter(
+              f => !offlineResult.deaths.includes(f.id)
+            );
+            
+            // Build dead fish list from offline deaths
+            const newDeadFishes = offlineResult.updatedFishes
+              .filter(f => offlineResult.deaths.includes(f.id))
+              .map(f => ({ ...f, deathTime: Date.now() }));
+
+            const allDeadFishes = [...(deadFishesObj.data || []), ...newDeadFishes];
+
+            // Count fish that grew to adult during offline
+            const grownCount = loadedFishes.filter(
+              (f, i) => f.stage === 'baby' && offlineResult.updatedFishes[i]?.stage === 'adult'
+            ).length;
+
+            useGameStore.setState({ 
+              coins: (economy.data.coins !== null ? economy.data.coins : 500) + Math.floor(offlineResult.coins), 
+              foodAmount: economy.data.foodAmount !== null ? economy.data.foodAmount : 50,
+              level: economy.data.level || 1,
+              xp: economy.data.xp || 0,
+              fishes: survivingFishes,
+              deadFishes: allDeadFishes,
+              lastSaved: localLastSaved
             });
-            // Auto-dismiss after 5 seconds
-            setTimeout(() => setOfflineSummary(null), 5000);
-          }
+            
+            if (statsObj.data) {
+               useGameStore.getState().setStatsData({
+                 stats: statsObj.data.stats,
+                 claimedMissions: statsObj.data.claimedMissions,
+                 dailyProgress: statsObj.data.dailyProgress,
+                 lastDailyReset: statsObj.data.lastDailyReset || Date.now()
+               });
+               useGameStore.getState().checkDailyReset();
+            }
+            // Remove dead fishes older than 30 days
+            useGameStore.getState().cleanupDeadFishes();
+            
+            // Show offline summary if player was away for > 5 minutes
+            const offlineMinutes = (Date.now() - localLastSaved) / (1000 * 60);
+            if (offlineMinutes > 5 && (offlineResult.coins > 1 || offlineResult.deaths.length > 0 || grownCount > 0)) {
+              setOfflineSummary({
+                coins: Math.floor(offlineResult.coins),
+                deaths: offlineResult.deaths.length,
+                grown: grownCount,
+              });
+              // Auto-dismiss after 5 seconds
+              setTimeout(() => setOfflineSummary(null), 5000);
+            }
 
-          // Save the new state after applying offline progress
-          setLoadingMsg('Sincronizando...')
-          useGameStore.getState().pushToCloud();
+            // Save the new state after applying offline progress
+            setLoadingMsg('Sincronizando...')
+            useGameStore.getState().pushToCloud();
+          }
         }
+      } catch (e) {
+        console.error('[Ocean Life] Error loading game data:', e);
+      } finally {
+        // BUG FIX: ALWAYS transition to ready state, even if loading fails
+        setLoadingMsg('Preparando aquário...')
+        // Preload audio system in parallel with final UI prep
+        preloadSounds().catch(() => {})
+        // Small delay for smooth transition
+        setTimeout(() => setIsReady(true), 300);
       }
-      setLoadingMsg('Preparando aquário...')
-      // Preload audio system in parallel with final UI prep
-      preloadSounds().catch(() => {})
-      // Small delay for smooth transition
-      setTimeout(() => setIsReady(true), 300);
     };
 
     supabase.auth.getSession().then(({ data: { session } }) => loadData(session));
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => loadData(session));
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      // Only process if not already loading — prevents double-call race condition
+      if (!isLoading) loadData(session);
+    });
     
     return () => {
       authListener.subscription.unsubscribe();
